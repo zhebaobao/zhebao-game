@@ -104,7 +104,7 @@ h1{margin:0;font-size:25px;letter-spacing:1px;text-shadow:2px 2px 0 #0d120b}.sub
 @media(max-width:620px){.levelGrid{grid-template-columns:1fr}.levelCard{min-height:140px}.rewardStage{min-height:390px}.rewardPlant{width:132px;height:170px}.rewardPlant canvas{width:114px;height:114px}}
 @media(max-height:520px){.levelScreen{display:block;padding:10px 0 26px}.levelPanel{margin:0 auto;padding:8px 0 28px}.levelPanel h2{font-size:24px}.levelPanel p{margin-bottom:10px}.levelGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.levelCard{min-height:118px;padding:10px 8px}.levelNo{font-size:25px}.levelDesc{font-size:11px;margin-top:5px}.levelTag{margin-top:6px}.almanacBtn{margin-bottom:12px}}
 
-.plantSelectScreen{position:fixed;inset:0;z-index:95;background:linear-gradient(#314a27,#172818);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease}.plantSelectScreen.show{opacity:1;pointer-events:auto}.plantSelectPanel{width:min(94vw,720px);padding:18px;text-align:center}.plantSelectPanel h2{margin:0 0 4px;font-size:28px;text-shadow:3px 3px 0 #0b1109}.plantSelectPanel p{margin:0 0 12px;color:#cad8b7;font-size:12px}.chosenTray{min-height:104px;border:3px solid #718b58;background:#21351c;padding:8px;display:grid;grid-template-columns:repeat(6,minmax(58px,74px));gap:7px;align-items:center;justify-content:center;margin-bottom:12px}.traySlot{height:84px;border:2px dashed #5f7650;background:#192b17;display:flex;align-items:center;justify-content:center;position:relative}.traySlot:empty:after{content:"+";color:#4f6744;font-size:22px}.plantPool{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.pickCard{position:relative;width:105px;height:118px;will-change:transform;contain:layout paint;border:3px solid #10170d;background:#4b603a;color:#fff5d2;padding:5px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:inset 3px 3px 0 #667d4f,inset -3px -3px 0 #2c3b24;cursor:grab;transition:transform .16s ease,filter .16s ease;touch-action:none;user-select:none}.pickCard:active{cursor:grabbing}.pickCard canvas.art{width:66px;height:66px;image-rendering:pixelated}.pickCard .pickCost{display:flex;align-items:center;gap:3px;color:#fff0a0;font-weight:900}.pickCard .pickCost canvas{width:15px;height:15px;image-rendering:pixelated}.pickCard.chosen{filter:brightness(1.15);outline:3px solid #d7eb78;outline-offset:-6px}.trayCard{width:68px;height:78px;border:2px solid #10170d;background:#536b40;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}.trayCard canvas{width:52px;height:52px;image-rendering:pixelated}.trayCard span{font-size:9px;font-weight:900;white-space:nowrap}.selectActions{display:flex;justify-content:center;gap:9px;margin-top:14px}.flyPick,.dragGhost{position:fixed;z-index:150;width:74px;height:84px;border:3px solid #10170d;background:#536b40;pointer-events:none;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 14px rgba(0,0,0,.28)}.flyPick canvas,.dragGhost canvas{width:62px;height:62px;image-rendering:pixelated}.flyPick{will-change:transform,opacity;transition:transform .28s cubic-bezier(.2,.78,.24,1),opacity .12s linear;contain:layout paint style}.dragGhost{opacity:.92;transform:translate(-50%,-50%) scale(1.05)}.trayHot{outline:3px solid #d7eb78;outline-offset:3px}@keyframes traySettle{0%{transform:scale(.82);opacity:.5}100%{transform:none;opacity:1}}
+.plantSelectScreen{position:fixed;inset:0;z-index:95;background:linear-gradient(#314a27,#172818);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease}.plantSelectScreen.show{opacity:1;pointer-events:auto}.plantSelectPanel{width:min(94vw,720px);padding:18px;text-align:center}.plantSelectPanel h2{margin:0 0 4px;font-size:28px;text-shadow:3px 3px 0 #0b1109}.plantSelectPanel p{margin:0 0 12px;color:#cad8b7;font-size:12px}.chosenTray{min-height:104px;border:3px solid #718b58;background:#21351c;padding:8px;display:grid;grid-template-columns:repeat(7,minmax(54px,70px));gap:7px;align-items:center;justify-content:center;margin-bottom:12px}.traySlot{height:84px;border:2px dashed #5f7650;background:#192b17;display:flex;align-items:center;justify-content:center;position:relative}.traySlot:empty:after{content:"+";color:#4f6744;font-size:22px}.plantPool{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.pickCard{position:relative;width:105px;height:118px;will-change:transform;contain:layout paint;border:3px solid #10170d;background:#4b603a;color:#fff5d2;padding:5px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:inset 3px 3px 0 #667d4f,inset -3px -3px 0 #2c3b24;cursor:grab;transition:transform .16s ease,filter .16s ease;touch-action:none;user-select:none}.pickCard:active{cursor:grabbing}.pickCard canvas.art{width:66px;height:66px;image-rendering:pixelated}.pickCard .pickCost{display:flex;align-items:center;gap:3px;color:#fff0a0;font-weight:900}.pickCard .pickCost canvas{width:15px;height:15px;image-rendering:pixelated}.pickCard.chosen{filter:brightness(1.15);outline:3px solid #d7eb78;outline-offset:-6px}.trayCard{width:68px;height:78px;border:2px solid #10170d;background:#536b40;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}.trayCard canvas{width:52px;height:52px;image-rendering:pixelated}.trayCard span{font-size:9px;font-weight:900;white-space:nowrap}.selectActions{display:flex;justify-content:center;gap:9px;margin-top:14px}.flyPick,.dragGhost{position:fixed;z-index:150;width:74px;height:84px;border:3px solid #10170d;background:#536b40;pointer-events:none;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 14px rgba(0,0,0,.28)}.flyPick canvas,.dragGhost canvas{width:62px;height:62px;image-rendering:pixelated}.flyPick{will-change:transform,opacity;transition:transform .28s cubic-bezier(.2,.78,.24,1),opacity .12s linear;contain:layout paint style}.dragGhost{opacity:.92;transform:translate(-50%,-50%) scale(1.05)}.trayHot{outline:3px solid #d7eb78;outline-offset:3px}@keyframes traySettle{0%{transform:scale(.82);opacity:.5}100%{transform:none;opacity:1}}
 
 
 /* 启动加载层：先于开场动画显示，避免手机首次初始化时像黑屏 */
@@ -725,7 +725,7 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
 <div class="plantSelectScreen" id="plantSelectScreen">
   <div class="plantSelectPanel">
     <h2 id="plantSelectTitle">选择植物</h2>
-    <p>最多选择 6 个植物，不必选满也可以开始。</p>
+    <p>最多选择 7 个植物；拥有不超过 7 种植物时会自动全部携带。</p>
     <div class="chosenTray" id="chosenTray"></div>
     <div class="plantPool" id="plantPool"></div>
     <div class="selectActions"><button class="btn" id="backLevels">返回选关</button><button class="btn primary" id="enterBattle">开始游戏</button></div>
@@ -1115,8 +1115,8 @@ const LEVELS={
   10:{total:22,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:8.0,spawnMin:7.5,spawnMax:10.5}
 };
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
-let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,magnetUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
-const TEST_MODE=true;
+let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
+const TEST_MODE=false;
 let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=10,bossWrenches=[];
 async function requestGameFullscreen(){
   const el=document.documentElement;
@@ -1130,27 +1130,36 @@ async function requestGameFullscreen(){
 }
 
 const SAVE_KEY='pixelLawnBattle.save.v1';
-function makeSaveData(){return {version:1,completedLevels:[...new Set(completedLevels)].sort((a,b)=>a-b),wallUnlocked,potatoUnlocked,fanUnlocked,magnetUnlocked,savedAt:new Date().toISOString()}}
+function makeSaveData(){return {version:2,completedLevels:[...new Set(completedLevels)].sort((a,b)=>a-b),wallUnlocked,potatoUnlocked,fanUnlocked,lighterUnlocked,magnetUnlocked,crossfanUnlocked,savedAt:new Date().toISOString()}}
 function persistProgress(){if(TEST_MODE)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSaveData()))}catch(e){}}
 function normalizeSave(raw){
-  const c=[...new Set(Array.isArray(raw?.completedLevels)?raw.completedLevels.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=9):[])].sort((a,b)=>a-b);
-  // Repair older/interrupted saves: once the reward level is completed, its plant must stay unlocked.
-  return {version:1,completedLevels:c,wallUnlocked:!!raw?.wallUnlocked||c.includes(1),potatoUnlocked:!!raw?.potatoUnlocked||c.includes(2),fanUnlocked:!!raw?.fanUnlocked||c.includes(3),magnetUnlocked:!!raw?.magnetUnlocked||c.includes(7)};
+  const c=[...new Set(Array.isArray(raw?.completedLevels)?raw.completedLevels.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=10):[])].sort((a,b)=>a-b);
+  return {version:2,completedLevels:c,
+    wallUnlocked:!!raw?.wallUnlocked||c.includes(1),
+    potatoUnlocked:!!raw?.potatoUnlocked||c.includes(2),
+    fanUnlocked:!!raw?.fanUnlocked||c.includes(3),
+    lighterUnlocked:!!raw?.lighterUnlocked||c.includes(4),
+    magnetUnlocked:!!raw?.magnetUnlocked||c.includes(5),
+    crossfanUnlocked:!!raw?.crossfanUnlocked||c.includes(6)};
 }
 function applySaveData(raw){
-  const d=normalizeSave(raw);completedLevels=d.completedLevels;wallUnlocked=d.wallUnlocked;potatoUnlocked=d.potatoUnlocked;fanUnlocked=d.fanUnlocked;magnetUnlocked=d.magnetUnlocked;
+  const d=normalizeSave(raw);completedLevels=d.completedLevels;wallUnlocked=d.wallUnlocked;potatoUnlocked=d.potatoUnlocked;fanUnlocked=d.fanUnlocked;lighterUnlocked=d.lighterUnlocked;magnetUnlocked=d.magnetUnlocked;crossfanUnlocked=d.crossfanUnlocked;
   refreshProgressUI();
 }
 function loadLocalProgress(){if(TEST_MODE)return;try{const raw=localStorage.getItem(SAVE_KEY);if(raw)applySaveData(JSON.parse(raw))}catch(e){}}
 function refreshProgressUI(){
+  const numerals=['','一','二','三','四','五','六','七','八','九','十'];
   document.querySelectorAll('.levelCard').forEach(b=>{
-    const n=+b.dataset.level,done=completedLevels.includes(n),open=TEST_MODE||n===1||completedLevels.includes(n-1);
-    b.classList.toggle('done',done);b.classList.toggle('locked',!open);
-    const tag=b.querySelector('.levelTag');if(tag){if(TEST_MODE)tag.textContent=done?'已完成 · 测试开放':'测试开放';else if(done)tag.textContent='已完成 · 可重玩';else if(open)tag.textContent=n===1?'开始冒险':'新关卡';else tag.textContent='';}
+    const n=+b.dataset.level,done=completedLevels.includes(n),open=n===1||completedLevels.includes(n-1);
+    b.classList.toggle('done',done);b.classList.toggle('locked',!open);b.disabled=!open;
+    const no=b.querySelector('.levelNo');if(no)no.textContent=open?`第${numerals[n]}关`:'？';
+    for(const el of b.children)if(!el.classList.contains('levelNo'))el.style.display=open?'':'none';
+    const tag=b.querySelector('.levelTag');if(tag)tag.textContent=open?(done?'已完成 · 可重玩':(n===1?'开始冒险':'新关卡')):'';
+    b.setAttribute('aria-label',open?`第 ${n} 关`:'未解锁关卡');
   });
 }
 function markLevelComplete(n){if(!completedLevels.includes(n))completedLevels.push(n);persistProgress();refreshProgressUI()}
-function saveSummary(){const highest=completedLevels.length?Math.max(...completedLevels):0;return `已完成关卡：${completedLevels.length ? completedLevels.map(n=>'1-'+n).join('、') : '暂无'}<br>最高进度：${highest?('1-'+highest):'尚未通关'}<br>植物：豌豆射手、向日葵、打火机${wallUnlocked?'、坚果':''}${potatoUnlocked?'、土豆地雷':''}${fanUnlocked?'、寒风扇':''}${magnetUnlocked?'、吸铁石':''}${TEST_MODE?'<br><b>当前为测试模式：测试游玩不会覆盖正式存档</b>':''}`}
+function saveSummary(){const highest=completedLevels.length?Math.max(...completedLevels):0;const owned=['豌豆射手','向日葵',...(wallUnlocked?['坚果']:[]),...(potatoUnlocked?['土豆地雷']:[]),...(fanUnlocked?['寒风扇']:[]),...(lighterUnlocked?['打火机']:[]),...(magnetUnlocked?['吸铁石']:[]),...(crossfanUnlocked?['十字吹风机']:[])];return `已完成关卡：${completedLevels.length?completedLevels.map(n=>'1-'+n).join('、'):'暂无'}<br>最高进度：${highest?('1-'+highest):'尚未通关'}<br>植物：${owned.join('、')}`}
 
 const MOBILE_PERF=matchMedia('(pointer:coarse)').matches||matchMedia('(max-width:900px)').matches;
 const DEVICE_DPR=Math.max(1,window.devicePixelRatio||1);
@@ -1761,11 +1770,11 @@ function drawChainsaw(ctx,spin=0,bloody=true){
 
 function createPlantSun(p){
   p.anim=Math.max(p.anim,0.75);playSfx('sunSpawn',.75,'sunSpawn',140,p.col+.5);
-  suns.push({id:nextId++,kind:'plant',x:p.col+.5,y:p.row+.32,startY:p.row+.48,targetY:p.row+.16,age:0,life:8,value:35});
+  suns.push({id:nextId++,kind:'plant',x:p.col+.5,y:p.row+.32,startY:p.row+.48,targetY:p.row+.16,age:0,life:8,value:25});
 }
 function createSkySun(){
   const x=.65+Math.random()*(COLS-1.3),targetY=.65+Math.random()*(ROWS-1.3);
-  suns.push({id:nextId++,kind:'sky',x,y:-.28,startY:-.28,targetY,age:0,life:10,value:35});
+  suns.push({id:nextId++,kind:'sky',x,y:-.28,startY:-.28,targetY,age:0,life:10,value:25});
   say('天空阳光出现，正在自动收集。');
 }
 function collectSun(id,el){
@@ -1990,9 +1999,9 @@ function update(dt){
     p.lastFrame=Math.floor((gameTime*6+p.id)%4);
     if((p.plantingAge??.56)<.56)continue;
     if(p.type==='sunflower'){
-      p.charge=Math.min(1,p.produce/10.43);
+      p.charge=Math.min(1,p.produce/9.43);
       p.produce+=dt;
-      if(p.produce>=10.43){p.produce=0;createPlantSun(p)}
+      if(p.produce>=9.43){p.produce=0;createPlantSun(p)}
     }
     if(p.type==='pea'){
       if(p.fireTransform>0)continue;
@@ -5150,16 +5159,15 @@ document.addEventListener('pointercancel',e=>{if(sunSweepPointer===e.pointerId)s
 const cooldownCards=[...document.querySelectorAll('.tool[data-tool]')];
 function updateCooldownUI(){for(const b of cooldownCards){const t=b.dataset.tool;if(!cooldownMax[t])continue;const rem=cooldowns[t]||0,max=cooldownMax[t],cooling=rem>0;const label=cooling?(rem<10?rem.toFixed(1):Math.ceil(rem))+'s':'';const pct=Math.ceil(rem/max*100)+'%';if(b.classList.contains('cooling')!==cooling)b.classList.toggle('cooling',cooling);if(b.dataset.cd!==label)b.dataset.cd=label;if(b.style.getPropertyValue('--cd-pct')!==pct)b.style.setProperty('--cd-pct',pct)}}
 function updateHUD(){sunEl.textContent=Math.floor(sun);killsEl.textContent=`${kills}`}
+const LEVEL_PLANT_REWARDS={1:'wall',2:'potato',3:'fan',4:'lighter',5:'magnet',6:'crossfan'};
+function isPlantUnlocked(t){return t==='pea'||t==='sunflower'||(t==='wall'&&wallUnlocked)||(t==='potato'&&potatoUnlocked)||(t==='fan'&&fanUnlocked)||(t==='lighter'&&lighterUnlocked)||(t==='magnet'&&magnetUnlocked)||(t==='crossfan'&&crossfanUnlocked)}
 function finish(win){
   ended=true;running=false;battleRoot.classList.remove('plantBulletTime');stopBattleBgm();syncGameMusic();toggle.disabled=true;toggle.textContent='战斗结束';
   if(!win){playSfx('lose',1.15,'finish',1000);say('防线被突破，你被感染了。');showInfection();return}
-  playSfx('win',1.1,'finish',1000);say('守住了！关卡完成！');
-  markLevelComplete(currentLevel);
-  if(currentLevel===1&&!wallUnlocked){rewardType='wall',pendingLevel=1,selectedPlants=[];setTimeout(showReward,420);}
-  else if(currentLevel===2&&!potatoUnlocked){rewardType='potato';setTimeout(showReward,420);}
-  else if(currentLevel===3&&!fanUnlocked){rewardType='fan';setTimeout(showReward,420);}
-  else if(currentLevel===7&&!magnetUnlocked){rewardType='magnet';setTimeout(showReward,420);}
-  else {const b=document.querySelector(`.levelCard[data-level="${currentLevel}"]`);if(b){b.classList.add('done');b.classList.remove('locked');const tag=b.querySelector('.levelTag');if(tag)tag.textContent='已完成 · 可重玩';}const next=document.querySelector(`.levelCard[data-level="${currentLevel+1}"]`);if(next&&!TEST_MODE){next.classList.remove('locked');const tag=next.querySelector('.levelTag');if(tag)tag.textContent='新关卡';}setTimeout(showLevelSelect,650);}
+  playSfx('win',1.1,'finish',1000);say('守住了！关卡完成！');markLevelComplete(currentLevel);
+  const reward=LEVEL_PLANT_REWARDS[currentLevel];
+  if(reward&&!isPlantUnlocked(reward)){rewardType=reward;pendingLevel=currentLevel;selectedPlants=[];setTimeout(showReward,420);}
+  else setTimeout(showLevelSelect,650);
 }
 function applyLevelUI(){
   const cfg=LEVELS[currentLevel];
@@ -5188,7 +5196,7 @@ function reset(){startLevel(currentLevel)}
 function showReward(){
   running=false;syncGameMusic();
   rewardClaiming=false;rewardStage.classList.remove('focus');rewardOverlay.classList.remove('focus');document.getElementById('unlockFlash').classList.remove('on');document.getElementById('newPlantToast').classList.remove('show');
-  const name=rewardType==='wall'?'坚果':(rewardType==='potato'?'土豆地雷':(rewardType==='fan'?'寒风扇':'吸铁石'));document.getElementById('rewardName').textContent=name;document.getElementById('rewardTitle').textContent='新的植物从草坪里钻出来了';document.getElementById('newPlantToast').textContent='获得新植物：'+name+'！';
+  const name=({wall:'坚果',potato:'土豆地雷',fan:'寒风扇',lighter:'打火机',magnet:'吸铁石',crossfan:'十字吹风机'}[rewardType]||'新植物');document.getElementById('rewardName').textContent=name;document.getElementById('rewardTitle').textContent='新的植物从草坪里钻出来了';document.getElementById('newPlantToast').textContent='获得新植物：'+name+'！';
   const portrait=document.getElementById('rewardPortrait');portrait.src=plantPortraitSrc(rewardType);portrait.alt='待揭晓的新植物';
   rewardCard.classList.remove('revealing');rewardCard.classList.add('mystery');
   document.getElementById('rewardName').textContent='？？？';
@@ -5220,7 +5228,9 @@ function claimReward(){
   if(unlockedType==='wall')wallUnlocked=true;
   else if(unlockedType==='potato')potatoUnlocked=true;
   else if(unlockedType==='fan')fanUnlocked=true;
-  else magnetUnlocked=true;
+  else if(unlockedType==='lighter')lighterUnlocked=true;
+  else if(unlockedType==='magnet')magnetUnlocked=true;
+  else if(unlockedType==='crossfan')crossfanUnlocked=true;
   persistProgress();refreshProgressUI();
 
   const toast=document.getElementById('newPlantToast');
@@ -5324,13 +5334,13 @@ function plantPortraitSrc(t){
   return '';
 }
 function availablePlantsForLevel(n){
-  if(TEST_MODE)return ['pea','sunflower','lighter','wall','potato','fan','magnet',...(n>=8?['crossfan']:[])];
-  const base=['pea','sunflower','lighter'];
+  const base=['pea','sunflower'];
   if(wallUnlocked)base.push('wall');
   if(potatoUnlocked)base.push('potato');
   if(fanUnlocked)base.push('fan');
+  if(lighterUnlocked)base.push('lighter');
   if(magnetUnlocked)base.push('magnet');
-  if(n>=8)base.push('crossfan');
+  if(crossfanUnlocked)base.push('crossfan');
   return base;
 }
 function drawPlantIcon(ctx,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(t==='pea')drawPea(ctx,0,0,false);else if(t==='sunflower')drawSunflower(ctx,0,0,false);else if(t==='wall')drawWall(ctx,0,0,false);else if(t==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(t==='fan')drawFan(ctx,0,{id:9},false);else if(t==='magnet')drawMagnet(ctx,0,{id:10},false);else if(t==='crossfan')drawCrossFan(ctx,0,{id:11,crossActive:0},false);else drawLighter(ctx,0,{id:999},false)}
@@ -5357,7 +5367,7 @@ function syncPlantSelectState(){
   plantPool.querySelectorAll('.pickCard').forEach(b=>b.classList.toggle('chosen',selectedPlants.includes(b.dataset.plant)));
 }
 function addSelectedPlant(t,source){
-  if(selectedPlants.includes(t)||selectedPlants.length>=6)return;
+  if(selectedPlants.includes(t)||selectedPlants.length>=7)return;
   const targetIndex=selectedPlants.length;selectedPlants.push(t);source.classList.add('chosen');
   flyPlantToTray(source,t,targetIndex,()=>syncPlantSelectState());
 }
@@ -5366,12 +5376,12 @@ function attachDrag(b,t){
   let down=false,dragging=false,sx=0,sy=0,ghost=null,pid=null;
   b.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||selectedPlants.includes(t))return;down=true;dragging=false;sx=e.clientX;sy=e.clientY;pid=e.pointerId;b.setPointerCapture?.(pid)});
   b.addEventListener('pointermove',e=>{if(!down)return;const dist=Math.hypot(e.clientX-sx,e.clientY-sy);if(!dragging&&dist>8){dragging=true;ghost=makePickVisual(t,'dragGhost');document.body.appendChild(ghost)}if(dragging&&ghost){ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';const r=chosenTray.getBoundingClientRect(),hot=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;chosenTray.classList.toggle('trayHot',hot)}});
-  const end=e=>{if(!down)return;down=false;chosenTray.classList.remove('trayHot');if(dragging){dragSuppressUntil=performance.now()+300;const r=chosenTray.getBoundingClientRect(),hit=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;ghost?.remove();if(hit&&selectedPlants.length<6&&!selectedPlants.includes(t)){selectedPlants.push(t);renderPlantSelect()}}dragging=false;ghost=null};
+  const end=e=>{if(!down)return;down=false;chosenTray.classList.remove('trayHot');if(dragging){dragSuppressUntil=performance.now()+300;const r=chosenTray.getBoundingClientRect(),hit=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;ghost?.remove();if(hit&&selectedPlants.length<7&&!selectedPlants.includes(t)){selectedPlants.push(t);renderPlantSelect()}}dragging=false;ghost=null};
   b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);
 }
 function renderPlantSelect(){
   plantPool.innerHTML='';chosenTray.innerHTML='';
-  for(let i=0;i<6;i++){const slot=document.createElement('div');slot.className='traySlot';slot.dataset.plant=selectedPlants[i]||'';if(selectedPlants[i])slot.appendChild(makeTrayCard(selectedPlants[i]));chosenTray.appendChild(slot)}
+  for(let i=0;i<7;i++){const slot=document.createElement('div');slot.className='traySlot';slot.dataset.plant=selectedPlants[i]||'';if(selectedPlants[i])slot.appendChild(makeTrayCard(selectedPlants[i]));chosenTray.appendChild(slot)}
   for(const t of availablePlantsForLevel(pendingLevel)){
     const b=document.createElement('button');b.className='pickCard'+(selectedPlants.includes(t)?' chosen':'');b.type='button';b.dataset.plant=t;
     b.innerHTML=`<strong>${plantNames[t]}</strong><img class="art" src="${plantPortraitSrc(t)}" alt="${plantNames[t]}立绘"><span class="pickCost"><canvas width="16" height="16"></canvas>${costs[t]}</span>`;
@@ -5379,21 +5389,29 @@ function renderPlantSelect(){
     b.addEventListener('click',()=>{if(performance.now()<dragSuppressUntil)return;if(selectedPlants.includes(t))removeSelectedPlant(t);else addSelectedPlant(t,b)});attachDrag(b,t);plantPool.appendChild(b);
   }
 }
-function openPlantSelect(n){pendingLevel=n;selectedPlants=[];document.getElementById('plantSelectTitle').textContent=`1-${n} · 选择植物`;levelScreen.classList.remove('show');renderPlantSelect();plantPool.scrollTop=0;setTimeout(()=>plantSelectScreen.classList.add('show'),180)}
+function openPlantSelect(n){
+  pendingLevel=n;const available=availablePlantsForLevel(n);
+  if(available.length<=7){
+    selectedPlants=[...available];levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');
+    startLevel(n);setTimeout(fitMobileBoard,120);return;
+  }
+  selectedPlants=[];document.getElementById('plantSelectTitle').textContent=`1-${n} · 选择 7 种植物`;
+  levelScreen.classList.remove('show');renderPlantSelect();plantPool.scrollTop=0;setTimeout(()=>plantSelectScreen.classList.add('show'),180);
+}
 document.getElementById('backLevels').addEventListener('click',()=>{plantSelectScreen.classList.remove('show');setTimeout(()=>levelScreen.classList.add('show'),180)});
-document.getElementById('enterBattle').addEventListener('click',()=>{requestGameFullscreen();startLevel(pendingLevel);setTimeout(fitMobileBoard,120)});
+document.getElementById('enterBattle').addEventListener('click',()=>{startLevel(pendingLevel);setTimeout(fitMobileBoard,120)});
 
 const almanacScreen=document.getElementById('almanacScreen'),almanacGrid=document.getElementById('almanacGrid');
 let almanacRAF=0,almanacFocus=null,almanacReturn='levels';
 const dexEntries=[
   {id:'pea',name:'豌豆射手',kind:'植物',desc:'发射豌豆子弹，持续攻击前方僵尸。'},
   {id:'sunflower',name:'向日葵',kind:'植物',desc:'可爱的小猫向日葵，会定期生产阳光。'},
-  {id:'lighter',name:'打火机',kind:'植物',desc:'75 阳光。当前已实现第一种用法：点燃并抛向目标格，烧焦该格地砖 30 秒；不阻碍僵尸前进，僵尸站在上面每秒受到 30 点伤害。'},
+  {id:'lighter',name:'打火机',kind:'植物',desc:'75 阳光。既可以投到空草地形成持续 30 秒的火坑，也可以投到豌豆射手身上转化为火焰射手，或投到坚果身上熔铸成熔岩坚果。'},
   {id:'wall',name:'坚果',kind:'植物',desc:'厚重的防御植物，保护后方植物并阻挡丧尸。'},
   {id:'potato',name:'土豆地雷',kind:'植物',desc:'潜伏的暗器。25 阳光，约 6 秒出土，爆炸伤害 500。'},
   {id:'fan',name:'寒风扇',kind:'植物',desc:'持续向前吹出 4 格冷风。175 阳光，20 秒冷却；范围内丧尸减速 50%，不造成伤害。'},
   {id:'magnet',name:'吸铁石',kind:'植物',desc:'100 阳光。吸走周围 4×4 范围铁桶僵尸的铁桶；拆下的铁桶可拖到任意植物头上，提供 200 点护甲。'},
-  {id:'crossfan',name:'十字吹风机',kind:'植物',desc:'第八关一次性机关。只能部署在打火机留下的火坑上；没有实体血量，不阻挡也不会被僵尸攻击。启动后向上下左右四个方向吹出风火，持续 3 秒，对十字火路中的僵尸造成每秒 100 点伤害，随后自行消失。'},
+  {id:'crossfan',name:'十字吹风机',kind:'植物',desc:'只能放置在打火机留下的火坑上。启动后向上下左右四个方向吹出风火，持续 3 秒，对十字火路中的僵尸造成每秒 100 点伤害，随后自行消失。'},
   {id:'normal',name:'普通丧尸',kind:'丧尸',desc:'步行逼近植物，贴身后连续啃咬。'},
   {id:'cone',name:'路障丧尸',kind:'丧尸',desc:'头顶路障提供额外防护，路障被打掉后继续前进。'},
   {id:'crawler',name:'半身爬行者',kind:'丧尸',desc:'失去下半身，用双手扒地拖行；移动缓慢，但每次扒地才向前窜一截。'},
@@ -5406,11 +5424,13 @@ const dexEntries=[
 function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else drawZombie(ctx,id==='cone',(t*.7)%1,null,false,false,0,0)}
 function isDexUnlocked(id){
   if(TEST_MODE)return true;
-  if(id==='pea'||id==='sunflower'||id==='lighter')return true;
+  if(id==='pea'||id==='sunflower')return true;
+  if(id==='lighter')return lighterUnlocked;
   if(id==='wall')return wallUnlocked;
   if(id==='potato')return potatoUnlocked;
   if(id==='fan')return fanUnlocked;
   if(id==='magnet')return magnetUnlocked;
+  if(id==='crossfan')return crossfanUnlocked;
   // Enemy pages appear only after the player has already survived the level that introduced them.
   if(id==='normal')return completedLevels.includes(1);
   if(id==='cone')return completedLevels.includes(2);
@@ -5434,7 +5454,7 @@ function renderAlmanac(){
       card.addEventListener('click',()=>{almanacFocus=e.id;renderAlmanac()});
     }else{
       // No canvas and no real name/description: locked entries cannot leak future art or abilities.
-      card.innerHTML=`<div class="dexMystery" aria-hidden="true">?</div><span class="dexType">未解锁</span><strong>？？？</strong><p>继续冒险后解锁图鉴</p>`;
+      card.innerHTML=`<div class="dexMystery" aria-hidden="true">?</div>`;card.setAttribute('aria-label','？');
       card.disabled=true;
     }
     almanacGrid.appendChild(card);
@@ -5508,7 +5528,7 @@ function drawToolCards(){
 }
 drawToolCards();const ssi=document.getElementById('sunStripIcon').getContext('2d');ssi.imageSmoothingEnabled=false;drawSun(ssi);
 document.querySelectorAll('.levelCard').forEach(b=>{if(TEST_MODE){b.classList.remove('locked');const tag=b.querySelector('.levelTag');if(tag&&!b.classList.contains('done'))tag.textContent='测试开放';}b.addEventListener('click',()=>{const n=+b.dataset.level;if(!TEST_MODE&&b.classList.contains('locked')){b.animate([{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'none'}],{duration:180});return}openPlantSelect(n)})});
-document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.tool;if(t==='lighter'&&!lighterTutorSeen()){openLighterTutorial().then(()=>{selectTool('lighter');say('教学完成：现在可以亲自使用打火机。')});return;}if(selected==='glove'&&t!=='glove'){glovePlantId=null;gloveFx=null;}if(selected===t){if(t==='glove'){glovePlantId=null;gloveFx=null;}selectTool(null);say('已取消选择。');return;}selectTool(t)}));
+document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.tool;if(selected==='glove'&&t!=='glove'){glovePlantId=null;gloveFx=null;}if(selected===t){if(t==='glove'){glovePlantId=null;gloveFx=null;}selectTool(null);say('已取消选择。');return;}selectTool(t)}));
 function beginBattle(){
   if(ended||battleStarted)return;
   battleStarted=true;running=true;syncPlantingBulletTime();stopIdleBgm();playBattleBgm();primeBossBgmForLevel10();resumeSfx();playSfx('wave',.8,'battleStart',800);
