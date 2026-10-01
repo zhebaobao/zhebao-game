@@ -514,7 +514,9 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
 @keyframes magnetHeldBucketPulse{from{filter:drop-shadow(0 0 3px #fff6a2) drop-shadow(0 0 7px #ffd936)}to{filter:drop-shadow(0 0 7px #fffbd0) drop-shadow(0 0 17px #ffcf25)}}
 
 
-.brainDrop{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px rgba(255,104,170,.95))}
+.brainDrop{width:9.5%;aspect-ratio:1;z-index:19;filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px rgba(255,104,170,.95))}
+.brainDrop .sprite{width:100%;height:100%}
+.entity.zombie.brainEating:not(.giantBrainEating) > .sprite:first-child{transform:rotate(-9deg) translateY(7%)}
 .entity.zombie.brainEating:after{content:"咀嚼脑浆…";position:absolute;left:50%;top:-12%;transform:translateX(-50%);white-space:nowrap;font-size:9px;font-weight:900;color:#ff9bc3;text-shadow:1px 1px 2px #210611;animation:brainEatPulse .45s ease-in-out infinite alternate}
 @keyframes brainEatPulse{to{transform:translateX(-50%) scale(1.08);opacity:.7}}
 
@@ -4516,7 +4518,7 @@ function render(){
       const biteBodyLean=z.eating?(bitePhase<.34?bitePhase/.34*.025:bitePhase<.62?.025:(1-(bitePhase-.62)/.38)*.025):0;
       const poseX=z.eatMode==='front'?(-0.055-biteBodyLean):0;
       if((z.type==='normal'||z.type==='cone'||z.type==='bucket')&&z.hitStun>0)d.classList.add('normalHit');
-      if((z.giantTransform||0)>0)d.classList.add('giantTransforming');else if(z.brainDropId){if(z.type==='giant')d.classList.add('giantBrainEating');else d.style.transform='translate(-50%,-50%) rotate(-9deg) translateY(7%)';}
+      if((z.giantTransform||0)>0)d.classList.add('giantTransforming');else if(z.brainDropId&&z.type==='giant')d.classList.add('giantBrainEating');
       const raidU=z.raidDrop?Math.max(0,Math.min(1,z.raidDrop.age/z.raidDrop.dur)):1;const raidY=z.raidDrop?(z.raidDrop.startY+(z.row+.5-z.raidDrop.startY)*raidU-.22*Math.sin(raidU*Math.PI)):(z.row+.5+wobbleY);d.style.left=pctX(z.x+poseX);d.style.top=pctY(raidY);
       if((z.giantTransform||0)>0)d.appendChild(makeLargeZombieCanvas(c=>drawGiantMutation(c,z)));
       else if(z.type==='giant')d.appendChild(makeLargeZombieCanvas(c=>drawMutantGiant(c,z)));
