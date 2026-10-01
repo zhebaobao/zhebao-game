@@ -1162,7 +1162,7 @@ const LEVELS={
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 const TEST_MODE=false;
-const FINAL_TEST_UNLOCK_ALL=true;
+const FINAL_TEST_UNLOCK_ALL=false;
 let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=10,bossWrenches=[];
 async function requestGameFullscreen(){
   const el=document.documentElement;
@@ -5616,7 +5616,7 @@ if(currentLevel===7)startLevel7();}
 battlePrepStart.addEventListener('click',beginBattle);
 toggle.addEventListener('click',()=>{if(ended)return;if(!battleStarted){beginBattle();return}running=!running;syncGameMusic();toggle.textContent=running?'暂停':'继续战斗';say(running?'继续战斗。':'已暂停，可以调整植物位置。')});
 document.getElementById('restart').addEventListener('click',reset);
-document.getElementById('speed').addEventListener('click',()=>{speedMul=speedMul===1?1.5:(speedMul===1.5?2:1);const b=document.getElementById('speed');b.textContent=speedMul.toFixed(1)+'×';b.classList.toggle('on',speedMul>1);say(speedMul===1?'已恢复 1.0× 速度。':`已开启 ${speedMul.toFixed(1)}× 加速。`)});
+document.getElementById('speed').addEventListener('click',()=>{speedMul=speedMul===1?1.5:1;const b=document.getElementById('speed');b.textContent=speedMul.toFixed(1)+'×';b.classList.toggle('on',speedMul>1);say(speedMul===1?'已恢复 1.0× 速度。':'已开启 1.5× 加速。')});
 let lastVisualFrame=0;
 // Render every display refresh (normally 60 Hz) on mobile too. The cheaper mobile canvases/effects remain enabled.
 let renderWasActive=true;
