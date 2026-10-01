@@ -5604,11 +5604,18 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>{
   clearInterval(bootTimer);loadingFill.style.width='100%';loadingText.textContent='加载完成 100%';introScreen.classList.add('ready');
   setTimeout(()=>loadingScreen.classList.add('done'),220);
 }));
-introStart.addEventListener('click',()=>{
-  introStart.disabled=true;introScreen.classList.add('exit');
+introStart.addEventListener('click',async()=>{
+  introStart.disabled=true;
+  // One user-gesture request restores the landscape/fullscreen viewport that the mobile layout is designed around.
+  // Later screens never request it again, so the browser cannot stack repeated permission prompts.
+  await requestGameFullscreen();
+  introScreen.classList.add('exit');
   battleRoot.classList.add('out');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');levelScreen.classList.remove('show');
-  setTimeout(()=>mainMenuScreen.classList.add('show'),260);
+  setTimeout(()=>{mainMenuScreen.classList.add('show');fitMobileBoard();},260);
 });
+document.addEventListener('fullscreenchange',()=>setTimeout(fitMobileBoard,80));
+document.addEventListener('webkitfullscreenchange',()=>setTimeout(fitMobileBoard,80));
+window.addEventListener('orientationchange',()=>setTimeout(fitMobileBoard,180));
 const saveScreen=document.getElementById('saveScreen'),saveInfo=document.getElementById('saveInfo'),saveMsg=document.getElementById('saveMsg'),saveFileInput=document.getElementById('saveFileInput');
 function openSaveScreen(){saveInfo.innerHTML=saveSummary();saveMsg.textContent='';saveScreen.classList.add('show');saveScreen.setAttribute('aria-hidden','false')}
 function closeSaveScreen(){saveScreen.classList.remove('show');saveScreen.setAttribute('aria-hidden','true')}
