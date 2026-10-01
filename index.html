@@ -558,6 +558,22 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
 .bossGlobalHpName{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;color:#ffd8d8;font-weight:900;font-size:14px;letter-spacing:.18em;text-shadow:0 2px 3px #000,0 0 8px #e71931}
 .bossGlobalHp.docked .bossGlobalHpName{font-size:11px;writing-mode:vertical-rl;left:-18px;bottom:auto;top:0;transform:none;letter-spacing:.08em}
 
+
+/* Almanac owns its scroll surface even when the fullscreen landscape shell is locked. */
+.almanacScreen,.almanacScreen.show{overflow:hidden!important;touch-action:pan-y!important;overscroll-behavior:contain}
+.almanacPanel{
+  max-height:min(88dvh,88vh)!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  touch-action:pan-y!important;overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-gutter:stable;
+}
+.almanacGrid,.dexCard,.dexCard *{touch-action:pan-y!important}
+@media (pointer:coarse) and (orientation:landscape){
+  .almanacScreen,.almanacScreen.show{align-items:center!important;padding-top:max(8px,env(safe-area-inset-top))!important;padding-bottom:max(10px,env(safe-area-inset-bottom))!important}
+  .almanacPanel{height:calc(100dvh - max(18px,env(safe-area-inset-top)) - max(22px,env(safe-area-inset-bottom)))!important;max-height:none!important;margin:auto!important}
+}
+
 </style>
 </head>
 <body>
