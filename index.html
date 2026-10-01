@@ -1612,24 +1612,38 @@ function updateLevel10(dt){
       const type=types[e.emitted%types.length],truckRows=[1,2,3],row=truckRows[e.emitted%truckRows.length];
       const z=makeZombie(type,row,10.35);z.bossSlide=makeCargoSlide(10.35,5.05);z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;e.groupReleased++;spawned++;e.releaseClock=1.15;
       playSfx('metalHit',.6,'bossDrop',100,8.8);
-      if(e.groupReleased>=4||e.emitted>=12){e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;say('工头离开车厢——20 秒后才会释放下一批僵尸！');}
+      if(e.groupReleased>=4||e.emitted>=12){e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;e.jumpLanded=false;e.jumpReturned=false;say('工头从车厢跳下，走到战车前方准备投掷扳手！');}
     }
   }
   if(e.phase==='intermission'){
     e.intermissionAge+=dt;
+    const moveEase=q=>q*q*(3-2*q),downDur=1.25,backStart=16.75,backDur=1.20,deckX=8.65,groundX=7.28;
+    if(e.intermissionAge<downDur){
+      const q=Math.max(0,Math.min(1,e.intermissionAge/downDur)),ease=moveEase(q);
+      boss.x=deckX+(groundX-deckX)*ease;boss.bossAirY=-.62*Math.sin(q*Math.PI);boss.bossJumpTilt=-10*Math.sin(q*Math.PI);
+    }else if(e.intermissionAge<backStart){
+      boss.x=groundX;boss.bossAirY=0;boss.bossJumpTilt=0;
+      if(!e.jumpLanded){e.jumpLanded=true;playSfx('land',1,'bossJumpDown',120,boss.x);say('工头落到战车前方——现在可以集中攻击他！');}
+    }else if(e.intermissionAge<backStart+backDur){
+      const q=Math.max(0,Math.min(1,(e.intermissionAge-backStart)/backDur)),ease=moveEase(q);
+      boss.x=groundX+(deckX-groundX)*ease;boss.bossAirY=-.68*Math.sin(q*Math.PI);boss.bossJumpTilt=12*Math.sin(q*Math.PI);
+    }else{
+      boss.x=deckX;boss.bossAirY=0;boss.bossJumpTilt=0;
+      if(!e.jumpReturned){e.jumpReturned=true;playSfx('land',.82,'bossJumpBack',120,boss.x);say('工头跳回车厢，准备下一轮装卸。');}
+    }
     const strike=()=>{
       const candidates=plants.filter(p=>p.hp>0&&p.type!=='crossfan'&&p.id!==e.lastTargetId);
       const fallback=plants.filter(p=>p.hp>0&&p.type!=='crossfan');
       const pool=candidates.length?candidates:fallback,target=pool[Math.floor(Math.random()*pool.length)]||null;
       e.target=target;
-      if(target){e.lastTargetId=target.id;throwBossWrench(boss,target);say('工头瞄准植物，抡圆扳手投掷出去！');}
+      if(target){e.lastTargetId=target.id;throwBossWrench(boss,target);say('工头在战车前抡圆手臂，把扳手投向植物！');}
     };
-    if(e.attackStep===0&&e.intermissionAge>=.38){strike();e.attackStep=1;}
-    if(e.attackStep===1&&e.intermissionAge>=9.15){strike();e.attackStep=2;}
-    if(e.attackStep===2&&e.intermissionAge>=17.35){boss.row=2;boss.x=8.65;e.target=null;e.attackStep=3;say('工头收回架势，下一批僵尸即将装卸。');}
+    if(e.attackStep===0&&e.intermissionAge>=1.48){strike();e.attackStep=1;}
+    if(e.attackStep===1&&e.intermissionAge>=10.15){strike();e.attackStep=2;}
+    if(e.attackStep===2&&e.intermissionAge>=backStart){e.target=null;e.attackStep=3;}
     if(e.intermissionAge>=20){
       e.groupReleased=0;e.releaseClock=0;e.intermissionAge=0;e.attackStep=0;
-      if(e.emitted>=12){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.teleportFx=.65;say('装卸结束——工头留在草坪上，集中火力击败他！');}
+      if(e.emitted>=12){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.bossAirY=0;boss.bossJumpTilt=0;boss.teleportFx=.65;say('装卸结束——工头再次跳下车，留在草坪上进行最终决战！');}
       else e.phase='release';
     }
   }
@@ -1841,7 +1855,7 @@ function damageZombie(z,dmg,source=null,isFireDamage=false){
   else if((source==='pea'||source==='firePea')&&bodyLost>0)playSfx('fleshHit',1,'fleshHit',38,z.x);
   if(z.type!=='giant'&&!z.armGone && z.hp<=z.maxHp*0.5){z.armGone=true;armFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:-1});}
   if(z.hp<=0&&source)z.deathSource=source;
-  const stunHit=(source==='pea'||source==='firePea')&&z.type!=='giant';
+  const stunHit=(source==='pea'||source==='firePea')&&z.type!=='giant'&&z.type!=='workboss';
   if(stunHit){
     // Pea impact keeps the full 0.4 s stagger and also knocks the zombie
     // one eighth of a lawn cell away from the plants (to the right).
@@ -4639,7 +4653,7 @@ function drawWorkBoss(c,z){
   const w=c.canvas.width,h=c.canvas.height,bob=!throwing?Math.sin(gameTime*3.2)*1.3:0;
   c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5+bob);
   const wind=throwing&&q<.36?q/.36:0,follow=throwing&&q>=.62?(q-.62)/.38:0;
-  c.rotate((-wind*3.5+follow*2.2)*Math.PI/180);c.translate(-w*.5,-h*.5);
+  c.rotate(((-wind*3.5+follow*2.2)+(z.bossJumpTilt||0))*Math.PI/180);c.translate(-w*.5,-h*.5);
   c.imageSmoothingEnabled=false;c.drawImage(sprite,0,0,w,h);
   if((z.bossHitFx||0)>0){const a=Math.min(.68,z.bossHitFx/.24*.68);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(0,0,w,h);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
   c.restore();
@@ -4987,7 +5001,7 @@ function render(){
   for(const z of zombies){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
     if(z.type==='workboss'){
-      d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(z.row+.5);d.style.width=(1.38/COLS*100)+'%';d.style.height=(100/ROWS*1.72)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
+      d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(z.row+.5+(z.bossAirY||0));d.style.width=(1.38/COLS*100)+'%';d.style.height=(100/ROWS*1.72)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
       const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc.getContext('2d'),z);d.appendChild(bc);
       frameUnits.appendChild(d);continue;
     }
