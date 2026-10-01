@@ -4387,7 +4387,7 @@ function drawCrawlerTrailCanvas(canvas,z){
   c.fillStyle='#6d2029';c.beginPath();c.ellipse(w-7,h*.58,Math.max(4,h*.10),Math.max(3,h*.08),.3,0,Math.PI*2);c.fill();
 }
 function drawWorkBoss(c,z){
-  const t=gameTime,step=Math.sin(t*4.2),attack=level10Boss?.phase==='attack';c.save();c.clearRect(0,0,c.width,c.height);c.translate(c.width*.5,c.height*.5);c.scale(c.width/150,c.height/180);
+  const w=c.canvas.width,h=c.canvas.height,t=gameTime,step=Math.sin(t*4.2),attack=level10Boss?.phase==='attack';c.save();c.clearRect(0,0,w,h);c.translate(w*.5,h*.5);c.scale(w/150,h/180);
   c.fillStyle='#111719';c.beginPath();c.ellipse(0,62,36,10,0,0,Math.PI*2);c.fill();
   c.strokeStyle='#20282a';c.lineWidth=15;c.lineCap='round';c.beginPath();c.moveTo(-13,28);c.lineTo(-18,65+step*2);c.moveTo(13,28);c.lineTo(18,65-step*2);c.stroke();
   c.fillStyle='#d39142';c.strokeStyle='#49301c';c.lineWidth=3;c.beginPath();c.roundRect(-31,-9,62,72,8);c.fill();c.stroke();
@@ -4399,7 +4399,7 @@ function drawWorkBoss(c,z){
   c.strokeStyle='#283437';c.lineWidth=5;c.beginPath();c.moveTo(18,-27);c.lineTo(28,-20);c.lineTo(22,-12);c.stroke();c.restore();
 }
 function drawBossTruck(c,open=0){
-  c.clearRect(0,0,c.width,c.height);c.save();c.translate(c.width*.5,c.height*.5);c.scale(c.width/220,c.height/220);
+  const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5);c.scale(w/220,h/220);
   c.fillStyle='#111719';c.strokeStyle='#050708';c.lineWidth=5;c.beginPath();c.roundRect(-75,-98,150,196,13);c.fill();c.stroke();
   c.fillStyle='#39464b';c.fillRect(-63,-86,126,170);c.strokeStyle='#829197';c.lineWidth=3;c.strokeRect(-63,-86,126,170);
   c.fillStyle='#151d20';c.fillRect(-52,-70,104,110);c.fillStyle='#27363a';c.fillRect(-44,-60,88,92);
