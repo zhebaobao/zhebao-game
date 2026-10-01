@@ -1303,11 +1303,8 @@ function updateWaveUI(){
 }
 function startLevel4FinalRaid(){
   if(currentLevel!==4||finalRaid?.active)return;
-  const impCount=5+Math.floor(Math.random()*6),queue=[];
-  for(let i=0;i<impCount;i++)queue.push({type:'imp',row:LEVELS[4].rows[Math.floor(Math.random()*LEVELS[4].rows.length)]});
-  for(let i=0;i<3;i++)queue.push({type:'normal',row:LEVELS[4].rows[Math.floor(Math.random()*LEVELS[4].rows.length)]});
-  for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]];}
-  finalRaid={active:true,age:0,extendDur:2.8,hold:.5,queue,nextDrop:0,dropEvery:.22,closing:false,closeAge:0};
+  const types=['normal','cone','crawler','normal','cone','crawler','normal','cone'],queue=types.map((type,i)=>({type,row:LEVELS[4].rows[i%LEVELS[4].rows.length]}));
+  finalRaid={active:true,age:0,extendDur:2.8,hold:.5,queue,nextDrop:0,dropEvery:.34,closing:false,closeAge:0};
   waveBurstRemaining=0;spawned=LEVELS[4].total;
   say('最后一波！右侧卸货板正在伸入草坪——准备迎接大举突袭！');
 }
@@ -1316,8 +1313,8 @@ function updateLevel4FinalRaid(dt){
   if(r.age<r.extendDur+r.hold)return;
   r.nextDrop-=dt;
   if(r.queue.length&&r.nextDrop<=0){
-    const item=r.queue.shift(),z=makeZombie(item.type,item.row,COLS-.72-Math.random()*3.15);
-    z.raidDrop={age:0,dur:.72+Math.random()*.20,startY:-.10};z.hitStun=0;z.hurt=0;zombies.push(z);
+    const item=r.queue.shift(),z=makeZombie(item.type,item.row,COLS+.35);
+    z.bossSlide={age:0,dur:.46,start:COLS+.35,end:5.05};z.hitStun=0;z.hurt=0;z.walkTick=0;zombies.push(z);
     r.nextDrop=r.dropEvery+Math.random()*.10;
   }
   if(!r.queue.length&&!r.closing){r.closing=true;r.closeAge=0;}
@@ -4455,15 +4452,14 @@ function render(){
   for(const fx of groundBloodFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=3;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>drawGroundBlood(c,fx)));frameUnits.appendChild(d)}
   for(const b of deathBloodDrops){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(b.x);d.style.top=pctY(b.y);d.style.zIndex=15;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>{c.save();c.translate(32,32);c.rotate(Math.atan2(b.vy,b.vx)+1.57);const scale=.42+((b.id*11)%17)/25;c.fillStyle='#9f0718';c.beginPath();c.ellipse(0,0,Math.max(.55,b.size*24)*scale,Math.max(1.4,b.size*44)*scale,0,0,Math.PI*2);c.fill();c.fillStyle='#e12b39';c.beginPath();c.ellipse(-.5,-1,Math.max(.3,b.size*9)*scale,Math.max(.6,b.size*14)*scale,0,0,Math.PI*2);c.fill();c.restore();}));frameUnits.appendChild(d)}
 
-  // Fourth-level finale: keep the truck ramp visibly towering over the battlefield.
+  // Fourth-level finale uses the same three-lane battle truck as level 10.
   if(finalRaidBusy()){
     const r=finalRaid;
     let ext=Math.max(0,Math.min(1,r.age/r.extendDur));
     if(r.closing)ext*=Math.max(0,1-r.closeAge/1.25);
-    const d=document.createElement('div');d.className='raidRamp';
-    d.style.left=pctX(COLS-4.15);d.style.top=pctY(-.42);
-    d.style.width=(5.15/COLS*100)+'%';d.style.height=(100/ROWS*1.9)+'%';
-    const c=document.createElement('canvas');c.width=1000;c.height=440;const rampCtx=c.getContext('2d');if(rampCtx)drawRaidRamp(rampCtx,ext,r.closing);d.appendChild(c);frameUnits.appendChild(d);
+    const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(8.75);d.style.top=pctY(2.5);
+    d.style.width=(2.35/COLS*100)+'%';d.style.height=(100/ROWS*3.05)+'%';d.style.zIndex='6';d.style.pointerEvents='none';
+    const c=document.createElement('canvas');c.width=260;c.height=330;c.style.width='100%';c.style.height='100%';drawBossTruck(c,ext);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===10&&level10Boss){
     const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(8.75);truck.style.top=pctY(2.5);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='6';truck.style.pointerEvents='none';
