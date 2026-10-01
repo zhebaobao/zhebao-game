@@ -1362,54 +1362,15 @@ function startLevel4FinalRaid(){
   waveBurstRemaining=0;spawned=LEVELS[4].total;
   say('最后一波！右侧卸货板正在伸入草坪——准备迎接大举突袭！');
 }
-function makeCargoSlide(start,end){
-  return {phase:'dive',age:0,phaseAge:0,diveDur:.82,start,end,y:-.18,vy:0,angle:-68,angularV:0,bounceCount:0,impactPulse:0};
-}
+function makeCargoSlide(start,end){return {phase:'dive',age:0,phaseAge:0,diveDur:1.02,start,end,y:-.16,vy:0,angle:-48,bounceCount:0,impactPulse:0};}
 function updateCargoSlide(z,dt){
-  const s=z.bossSlide;if(!s)return false;
-  s.age+=dt;s.phaseAge+=dt;s.impactPulse=Math.max(0,(s.impactPulse||0)-dt);
-  if(s.phase==='dive'){
-    const q=Math.min(1,s.phaseAge/s.diveDur),ease=q*q*(3-2*q);
-    z.x=s.start+(s.end-s.start)*ease;
-    // Follow the loading plate, tuck the shoulders, then steepen into a head-first dive.
-    s.y=-.18+.18*ease-.13*Math.sin(q*Math.PI);
-    s.angle=-68-24*ease+Math.sin(q*Math.PI)*5;
-    z.walkTick=(z.walkTick+dt*1.5)%1;
-    if(q>=1){
-      s.phase='tumble';s.phaseAge=0;s.y=0;s.vy=-.70;s.angle=-92;s.angularV=278;s.bounceCount=0;s.impactPulse=.16;
-      playSfx('land',.72,'cargoFaceLand',80,z.x);
-    }
-    return true;
-  }
-  if(s.phase==='tumble'){
-    // The head is the visible pivot: the body swings over it while gravity produces two diminishing bounces.
-    s.vy+=3.25*dt;s.y+=s.vy*dt;
-    // Complete the circular body-over-head arc during the two ballistic contacts;
-    // tying this to elapsed physics time avoids a visible snap when the second bounce settles.
-    const arc=Math.min(1,s.phaseAge/.70),arcEase=arc*arc*(3-2*arc);
-    s.angle=-92+186*arcEase;s.angularV=372*(1-arcEase);
-    if(s.y>=0&&s.vy>0){
-      s.y=0;s.bounceCount++;s.impactPulse=.14;
-      playSfx('fleshHit',s.bounceCount===1?.46:.28,'cargoBodyBounce'+s.bounceCount,70,z.x);
-      if(s.bounceCount===1){s.vy=-.42;s.angularV*=.58;}
-      else{s.phase='lie';s.phaseAge=0;s.vy=0;s.angle=94;s.angularV=0;}
-    }
-    if(s.phaseAge>1.15){s.phase='lie';s.phaseAge=0;s.y=0;s.vy=0;s.angle=94;s.angularV=0;}
-    return true;
-  }
-  if(s.phase==='lie'){
-    s.y=.012*Math.sin(Math.min(1,s.phaseAge/.58)*Math.PI);
-    if(s.phaseAge>=.58){s.phase='rise';s.phaseAge=0;s.y=0;}
-    return true;
-  }
-  if(s.phase==='rise'){
-    const q=Math.min(1,s.phaseAge/1.62),ease=q*q*(3-2*q);
-    // Slow hand-and-knee recovery, with a small effort dip before the feet take the weight.
-    s.angle=94*(1-ease);s.y=.035*Math.sin(q*Math.PI)-.018*Math.sin(Math.min(1,q*1.7)*Math.PI);
-    if(q>=1){s.phase='ready';s.phaseAge=0;s.angle=0;s.y=0;z.bossSlide=null;return true;}
-    return true;
-  }
-  z.bossSlide=null;return true;
+ const s=z.bossSlide;if(!s)return false;s.age+=dt;s.phaseAge+=dt;s.impactPulse=Math.max(0,(s.impactPulse||0)-dt);
+ if(s.phase==='dive'){const q=Math.min(1,s.phaseAge/s.diveDur),e=q*q*(3-2*q);z.x=s.start+(s.end-s.start)*e;s.y=-.16+.16*e-.11*Math.sin(q*Math.PI);s.angle=-48-38*e;z.walkTick=(z.walkTick+dt*.72)%1;if(q>=1){s.phase='impact';s.phaseAge=0;s.y=0;s.vy=0;s.angle=-86;s.impactPulse=.20;playSfx('land',.78,'cargoFaceLand',80,z.x);}return true;}
+ if(s.phase==='impact'){const q=Math.min(1,s.phaseAge/.18);s.y=.025*Math.sin(q*Math.PI);s.angle=-86+8*q;if(q>=1){s.phase='tumble';s.phaseAge=0;s.y=0;s.vy=-.67;s.angle=-78;s.bounceCount=0;}return true;}
+ if(s.phase==='tumble'){s.vy+=3.05*dt;s.y+=s.vy*dt;const q=Math.min(1,s.phaseAge/.78),e=q*q*(3-2*q);s.angle=-78+170*e;if(s.y>=0&&s.vy>0){s.y=0;s.bounceCount++;s.impactPulse=.15;playSfx('fleshHit',s.bounceCount===1?.44:.27,'cargoBodyBounce'+s.bounceCount,70,z.x);if(s.bounceCount===1)s.vy=-.40;else{s.phase='roll';s.phaseAge=0;s.vy=0;s.angle=92;}}if(s.phaseAge>1.30){s.phase='roll';s.phaseAge=0;s.y=0;s.vy=0;s.angle=92;}return true;}
+ if(s.phase==='roll'){const q=Math.min(1,s.phaseAge/.64);s.angle=92+18*Math.sin(q*Math.PI);s.y=.018*Math.sin(q*Math.PI);if(q>=1){s.phase='brace';s.phaseAge=0;s.angle=92;s.y=0;}return true;}
+ if(s.phase==='brace'){const q=Math.min(1,s.phaseAge/.72);s.angle=92-20*(q*q*(3-2*q));s.y=.018*Math.sin(q*Math.PI);if(q>=1){s.phase='rise';s.phaseAge=0;s.angle=72;s.y=0;}return true;}
+ if(s.phase==='rise'){const q=Math.min(1,s.phaseAge/1.42),e=q*q*(3-2*q);s.angle=72*(1-e);s.y=.026*Math.sin(q*Math.PI);if(q>=1){s.angle=0;s.y=0;z.bossSlide=null;return true;}return true;}z.bossSlide=null;return true;
 }
 function updateLevel4FinalRaid(dt){
   const r=finalRaid;if(!r||!r.active)return;r.age+=dt;
@@ -2141,6 +2102,7 @@ function update(dt){
     if(z.raidDrop){z.raidDrop.age+=dt;if(z.raidDrop.age<z.raidDrop.dur){z.walkTick=(z.walkTick+dt*2.2)%1;continue;}z.raidDrop=null;z.airY=0;}
     if(z.hurt>0)z.hurt=Math.max(0,z.hurt-dt*slowMul);
     if(z.hitStun>0)z.hitStun=Math.max(0,z.hitStun-dt);
+    if((z.lungeCooldown||0)>0)z.lungeCooldown=Math.max(0,z.lungeCooldown-dt*slowMul);
     if(updateImpState(z,dt*slowMul)) continue;
     if(z.lungeTime>0&&z.hitStun<=0){
       z.lungeTime=Math.max(0,z.lungeTime-dt*slowMul);
@@ -2148,7 +2110,7 @@ function update(dt){
         const dur=z.lungeDuration||.58, u=Math.max(0,Math.min(1,1-z.lungeTime/dur));
         const ease=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
         z.x=z.lungeStartX+(z.lungeEndX-z.lungeStartX)*ease;
-        if(z.lungeTime<=0){z.x=z.lungeEndX;z.lungeStartX=null;z.lungeEndX=null;}
+        if(z.lungeTime<=0){z.x=z.lungeEndX;z.lungeStartX=null;z.lungeEndX=null;z.lungeCooldown=15;}
       }
     }
     if(!Number.isFinite(z.gaitPhase)) z.gaitPhase=Math.random();
@@ -2218,7 +2180,7 @@ function update(dt){
       if(target){z.eatTargetId=target.id;z.eatMode=vertical?'vertical':'front';}
       else {
         const leap=same.filter(p=>{const d=z.x-(p.col+.5);return d>=0.72&&d<1.55;}).sort((a,b)=>b.col-a.col)[0];
-        if(leap && z.lungeTime<=0 && z.type!=='crawler' && z.type!=='imp' && z.type!=='giant' && z.type!=='brain'){
+        if(leap&&z.lungeTime<=0&&(z.lungeCooldown||0)<=0&&['normal','cone','bucket'].includes(z.type)){
           z.lungeDuration=.58; z.lungeTime=.58; z.lungePhase=.58;
           z.lungeStartX=z.x; z.lungeEndX=(leap.col+.5)+.50;playSfx('lunge',1,'lunge',100,z.x);
         }
@@ -3554,25 +3516,17 @@ function drawMinerMound(x,z){
 
   x.restore();
 }
-function drawCargoRecoveryOverlay(x,s,type){
-  if(!s||s.phase!=='rise')return;
-  const q=Math.max(0,Math.min(1,s.phaseAge/1.62)),push=q*q*(3-2*q);
-  x.save();x.lineCap='round';x.lineJoin='round';
-  // Both palms plant first; elbows straighten as the chest rises away from the turf.
-  const shoulderY=29-4*push,handY=56-5*push;
-  x.strokeStyle='#526b52';x.lineWidth=4.2;
-  x.beginPath();x.moveTo(25,shoulderY);x.quadraticCurveTo(18+4*push,42,14+7*push,handY);x.stroke();
-  x.beginPath();x.moveTo(36,shoulderY+1);x.quadraticCurveTo(42-3*push,43,46-6*push,handY);x.stroke();
-  x.strokeStyle='#2f3932';x.lineWidth=2.2;
-  x.beginPath();x.moveTo(9+7*push,handY);x.lineTo(18+7*push,handY);x.moveTo(41-6*push,handY);x.lineTo(50-6*push,handY);x.stroke();
-  if(type!=='crawler'){
-    // Bent knees and braced shoes take over once the arms have pushed the torso high enough.
-    x.strokeStyle='#303845';x.lineWidth=5;
-    x.beginPath();x.moveTo(27,44);x.quadraticCurveTo(20+7*push,50,18+8*push,58);x.moveTo(36,44);x.quadraticCurveTo(43-5*push,50,47-8*push,58);x.stroke();
-    x.strokeStyle='#171b1d';x.lineWidth=3.4;x.beginPath();x.moveTo(13+8*push,59);x.lineTo(23+8*push,59);x.moveTo(42-8*push,59);x.lineTo(53-8*push,59);x.stroke();
-  }
-  x.restore();
-}function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0){
+function drawCargoArticulated(x,z,drawBase){
+ const s=z.bossSlide,src=document.createElement('canvas');src.width=64;src.height=64;const b=src.getContext('2d');b.imageSmoothingEnabled=false;drawBase(b);
+ const p=s.phase,q=p==='dive'?Math.min(1,s.phaseAge/s.diveDur):p==='impact'?Math.min(1,s.phaseAge/.18):p==='tumble'?Math.min(1,s.phaseAge/1.30):p==='roll'?Math.min(1,s.phaseAge/.64):p==='brace'?Math.min(1,s.phaseAge/.72):Math.min(1,s.phaseAge/1.42);
+ let curl=0,head=0,ll=0,rl=0,reach=0;
+ if(p==='dive'){curl=.28*Math.sin(q*Math.PI);head=-.14*(1-q);ll=.34*(1-q);rl=-.22*(1-q);reach=.9;}else if(p==='impact'){curl=.48*(1-q);head=.28*(1-q);ll=-.36;rl=.29;reach=1;}else if(p==='tumble'){curl=-.34*Math.sin(q*Math.PI);head=-.22*Math.sin(q*Math.PI*1.35);ll=.52*Math.sin(q*Math.PI*2);rl=-.46*Math.sin(q*Math.PI*2+.8);reach=.72*(1-q);}else if(p==='roll'){curl=.30*Math.sin(q*Math.PI);head=-.16*Math.sin(q*Math.PI);ll=-.42;rl=.30;reach=.48;}else if(p==='brace'){curl=.44*(1-q);head=.18*(1-q);ll=-.62+.30*q;rl=.44-.18*q;reach=1;}else{curl=.34*(1-q);head=.12*(1-q);ll=-.34*(1-q);rl=.27*(1-q);reach=1-q*.65;}
+ const part=(sx,sy,sw,sh,px,py,a,dx=0,dy=0)=>{x.save();x.translate(px+dx,py+dy);x.rotate(a);x.translate(-px,-py);x.beginPath();x.rect(sx,sy,sw,sh);x.clip();x.drawImage(src,0,0);x.restore();};
+ x.save();x.translate(32,34);x.rotate((s.angle||0)*Math.PI/180);x.translate(-32,-34);part(4,38,29,26,27,42,ll,0,Math.abs(Math.sin(ll))*1.5);part(31,38,29,26,37,42,rl,0,Math.abs(Math.sin(rl))*1.5);part(7,20,50,31,32,43,curl);part(9,0,46,31,32,26,curl+head,Math.sin(curl)*2,-Math.abs(curl)*2);
+ x.strokeStyle='#667b55';x.lineWidth=4.2;x.lineCap='round';x.lineJoin='round';const hy=p==='dive'?25:55,sp=10+reach*10;x.beginPath();x.moveTo(24,28);x.quadraticCurveTo(18,38,32-sp,hy);x.moveTo(40,29);x.quadraticCurveTo(45,39,32+sp,hy);x.stroke();x.fillStyle='#526747';x.beginPath();x.arc(32-sp,hy,2.7,0,Math.PI*2);x.arc(32+sp,hy,2.7,0,Math.PI*2);x.fill();x.restore();
+ if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
+}
+function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0){
   const front=eatMode==='front', vertical=eatMode==='vertical';
   // One readable bite cycle: approach -> open -> clamp -> pull back. Damage timing stays independent.
   const bp=(front||vertical)?Math.max(0,Math.min(1,bitePhase)):0;
@@ -4806,24 +4760,17 @@ function render(){
       if(z.type==='giant'||(z.giantTransform||0)>0)d.classList.add('giantUnit');
       if((z.giantTransform||0)>0)d.classList.add('giantTransforming');else if(z.brainDropId&&z.type==='giant')d.classList.add('giantBrainEating');
       const raidU=z.raidDrop?Math.max(0,Math.min(1,z.raidDrop.age/z.raidDrop.dur)):1;const slideY=z.bossSlide?(z.bossSlide.y||0):0;const raidY=z.raidDrop?(z.raidDrop.startY+(z.row+.5-z.raidDrop.startY)*raidU-.22*Math.sin(raidU*Math.PI)):(z.row+.5+(z.bossSlide?slideY:wobbleY));d.style.left=pctX(z.x+poseX);d.style.top=pctY(raidY);
-      if(z.bossSlide){
-        const s=z.bossSlide,pulse=(s.impactPulse||0)>0?1-Math.min(1,s.impactPulse/.16):1;
-        const squash=(s.impactPulse||0)>0?(.87+.13*pulse):1;
-        d.dataset.landingPhase=s.phase;d.style.zIndex='15';d.style.transformOrigin='50% 24%';
-        d.style.transform=`translate(-50%,-50%) rotate(${(s.angle||0).toFixed(1)}deg) scale(${(1+(1-squash)*.08).toFixed(3)},${squash.toFixed(3)})`;
-      }
+      if(z.bossSlide){d.dataset.landingPhase=z.bossSlide.phase;d.style.zIndex='15';}
       if((z.giantTransform||0)>0)d.appendChild(makeLargeZombieCanvas(c=>drawGiantMutation(c,z)));
       else if(z.type==='giant')d.appendChild(makeLargeZombieCanvas(c=>drawMutantGiant(c,z)));
       else d.appendChild(makeCanvas(c=>{
-        if(z.type==='miner'){
-          if(z.digState==='underground'||z.digState==='rising')drawMinerMound(c,z);
-          else drawMinerZombie(c,z,bitePhase);
-        }
-        else if(z.type==='brain')drawBrainZombie(c,z,bitePhase);
-        else if(z.type==='crawler')drawCrawler(c,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),bitePhase,z.crawlPhase);
-        else if(z.type==='longhair')drawLongHairZombie(c,z,bitePhase);
-        else drawZombie(c,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='normal'||z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0);
-        if(z.bossSlide)drawCargoRecoveryOverlay(c,z.bossSlide,z.type);
+        const drawBase=ctx=>{
+          if(z.type==='miner'){if(z.digState==='underground'||z.digState==='rising')drawMinerMound(ctx,z);else drawMinerZombie(ctx,z,bitePhase);}
+          else if(z.type==='brain')drawBrainZombie(ctx,z,bitePhase);
+          else if(z.type==='crawler')drawCrawler(ctx,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),bitePhase,z.crawlPhase);
+          else if(z.type==='longhair')drawLongHairZombie(ctx,z,bitePhase);
+          else drawZombie(ctx,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='normal'||z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0);
+        };if(z.bossSlide)drawCargoArticulated(c,z,drawBase);else drawBase(c);
       }));
       if(z.brainDropId&&z.type!=='giant')d.appendChild(makeCanvas(c=>drawBrainEatingOverlay(c,z)));
     }
