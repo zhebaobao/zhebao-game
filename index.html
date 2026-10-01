@@ -46,6 +46,7 @@ h1{margin:0;font-size:25px;letter-spacing:1px;text-shadow:2px 2px 0 #0d120b}.sub
 .chalkHp:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#4f5555 0 30%,#3f4545 31% 72%,#2f3535 73% 100%);clip-path:polygon(0 4%,72% 0,100% 5%,100% 96%,72% 100%,0 96%);box-shadow:inset 1px 0 #737a79,inset -2px 0 #222727}
 .chalkHpFill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(90deg,#fff 0 30%,#eeeeea 31% 72%,#c5c6c1 73% 100%);clip-path:polygon(0 2%,72% 0,100% 3%,100% 97%,72% 100%,0 98%);box-shadow:inset 1px 0 rgba(255,255,255,.9),inset -2px 0 rgba(116,119,114,.32);z-index:2}
 .chalkHpFill:after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#fff;box-shadow:0 1px #b9bab5}
+.bossHp{position:absolute;left:8%;right:8%;top:-7%;height:9px;background:#240b0d;border:2px solid #100709;border-radius:4px;z-index:40;box-shadow:0 2px 0 #0008,0 0 10px #f01d35;pointer-events:none}.bossHpFill{height:100%;background:linear-gradient(#ff5362,#b10f25 62%,#5a0712);box-shadow:inset 0 1px #ffb2b2}
 .armorHp{position:absolute;right:3px;top:-8%;width:7px;height:20%;overflow:visible;pointer-events:none;z-index:23;filter:drop-shadow(2px 2px 1px rgba(0,0,0,.42))}
 .armorHp:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#161c20 0 28%,#303940 29% 64%,#101519 65% 100%);clip-path:polygon(0 5%,72% 0,100% 8%,100% 93%,68% 100%,0 95%);box-shadow:inset 1px 0 #66737a,inset -2px 0 #080b0d}
 .armorHpFill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(90deg,#20282d 0 28%,#4a555c 29% 62%,#1b2226 63% 100%);clip-path:polygon(0 4%,72% 0,100% 7%,100% 94%,70% 100%,0 96%);box-shadow:inset 1px 0 #829097,inset -2px 0 #0b0f11;z-index:2}
@@ -743,6 +744,7 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
       <button class="levelCard locked" data-level="7"><div class="levelNo">第七关</div><div class="levelDesc">铁架施工 · 飞机投桶突袭</div></button>
       <button class="levelCard locked" data-level="8"><div class="levelNo">第八关</div><div class="levelDesc">脑浆感染 · 中型巨人变异</div></button>
       <button class="levelCard locked" data-level="9"><div class="levelNo">第九关</div><div class="levelDesc">地下威胁 · 矿工破阵</div></button>
+      <button class="levelCard locked" data-level="10"><div class="levelNo">第十关</div><div class="levelDesc">战车 Boss · 装卸突袭</div></button>
     </div>
     <button class="btn almanacBtn" id="openAlmanac">查看图鉴</button>
   </div>
@@ -1047,12 +1049,13 @@ const LEVELS={
   6:{total:22,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan'],cones:true,crawlers:true,imps:true,longhairs:true,initialSun:175,firstDelay:7.5,spawnMin:6.3,spawnMax:8.7},
   7:{total:26,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,initialSun:175,firstDelay:7.5,spawnMin:6.0,spawnMax:8.2},
   8:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,initialSun:200,firstDelay:7.0,spawnMin:5.8,spawnMax:7.9},
-  9:{total:32,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,miners:true,initialSun:225,firstDelay:7.0,spawnMin:5.4,spawnMax:7.4}
+  9:{total:32,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,miners:true,initialSun:225,firstDelay:7.0,spawnMin:5.4,spawnMax:7.4},
+  10:{total:18,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:2.5,spawnMin:99,spawnMax:99}
 };
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,magnetUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 const TEST_MODE=true;
-let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false;
+let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null;
 async function requestGameFullscreen(){
   const el=document.documentElement;
   if(document.fullscreenElement||document.webkitFullscreenElement)return true;
@@ -1445,6 +1448,40 @@ function armLevel9MinerSpawns(){
     say('最后阶段：矿工僵尸成组钻入草坪！');
   }
 }
+function startLevel10Boss(){
+  level10Boss={age:0,emitted:0,releaseClock:0,phase:'entrance',attackStep:0,attackClock:0,target:null,truckOpen:0};
+  const boss=makeZombie('workboss',2,8.35);boss.hp=1400;boss.maxHp=1400;boss.bossUnit=true;zombies.push(boss);
+  say('战车驶入——装卸板正在打开！');playSfx('metalBuild',1.1,'bossTruck',300,8.8);
+}
+function updateLevel10(dt){
+  if(currentLevel!==10)return;
+  if(!level10Boss){startLevel10Boss();return;}
+  const e=level10Boss;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-.4)/1.8));
+  const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);if(!boss)return;
+  if(e.age<3.0){e.phase='entrance';return;}
+  if(e.emitted<18&&e.phase==='entrance'){
+    e.releaseClock-=dt;
+    if(e.releaseClock<=0){
+      const types=['crawler','normal','cone','crawler','brain','normal'];
+      const type=types[e.emitted%types.length],row=LEVELS[10].rows[e.emitted%LEVELS[10].rows.length];
+      const z=makeZombie(type,row,10.35);z.bossSlide={age:0,dur:.46,start:10.35,end:5.05};z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;spawned++;e.releaseClock=.34;
+      playSfx('metalHit',.6,'bossDrop',100,8.8);
+      if(e.emitted%6===0){e.phase='attack';e.attackStep=0;e.attackClock=0;e.target=null;}
+    }
+  }
+  if(e.phase==='attack'){
+    e.attackClock+=dt;
+    const targetPlants=plants.filter(p=>p.hp>0&&p.type!=='crossfan');
+    if(e.attackStep<2){
+      if(!e.target||e.target.hp<=0)e.target=targetPlants[Math.floor(Math.random()*targetPlants.length)]||null;
+      if(e.target){const desired=Math.max(4.6,Math.min(8.0,e.target.col+.9));boss.x+=Math.sign(desired-boss.x)*Math.min(Math.abs(desired-boss.x),.34*dt);}
+      if(e.attackClock>=1.25){if(e.target&&e.target.hp>0){damagePlant(e.target,e.target.hp+1);e.target.bumpTime=.55;playSfx('metalHit',1,'bossWrench',100,e.target.col+.5);}e.attackStep++;e.attackClock=0;e.target=null;}
+    }else if(e.attackClock>=5){e.phase='return';e.attackClock=0;}
+  }else if(e.phase==='return'){
+    boss.x+=Math.sign(8.35-boss.x)*Math.min(Math.abs(8.35-boss.x),.42*dt);
+    if(Math.abs(boss.x-8.35)<.08){boss.x=8.35;e.phase=e.emitted>=18?'hold':'entrance';e.attackClock=0;}
+  }
+}
 function pickZombieType(){
   const cfg=LEVELS[currentLevel],stage=waveStage(),surge=waveBurstRemaining>0;
   if(currentLevel===9&&level9MinerQueue.length)return level9MinerQueue.shift();
@@ -1469,8 +1506,8 @@ function pickZombieType(){
   return type;
 }
 function makeZombie(type,row,x=COLS+.18){
-  const hp=type==='giant'?400:(type==='miner'?150:(type==='brain'?80:(type==='crawler'?200:(type==='imp'?40:(type==='longhair'?150:100)))));
-  const speed=type==='giant'?.105:((type==='miner'||type==='brain')?.14:.21);
+  const hp=type==='workboss'?1400:(type==='giant'?400:(type==='miner'?150:(type==='brain'?80:(type==='crawler'?200:(type==='imp'?40:(type==='longhair'?150:100))))));
+  const speed=type==='workboss'?0:(type==='giant'?.105:((type==='miner'||type==='brain')?.14:.21));
   return {
     id:nextId++,type,row,x,hp,maxHp:hp,coneHp:type==='bucket'?200:(type==='cone'?50:0),coneMax:type==='bucket'?200:(type==='cone'?50:0),speed,
     attack:0,eating:false,eatMode:null,eatTargetId:null,walkTick:Math.random()*4,hurt:0,hitStun:0,
@@ -1729,7 +1766,8 @@ function update(dt){
   if(wavePulseTimer>0)wavePulseTimer=Math.max(0,wavePulseTimer-dt);
   updateLevel4FinalRaid(dt);
   updateLevel7(dt);
-  if(currentLevel!==7&&!finalRaidBusy()&&spawned<LEVELS[currentLevel].total&&spawnClock>=nextSpawnDelay){spawnClock=0;if(currentLevel===8)armLevel8FlagIfNeeded();if(currentLevel===9)armLevel9MinerSpawns();spawnZombie()}
+  updateLevel10(dt);
+  if(currentLevel!==7&&currentLevel!==10&&!finalRaidBusy()&&spawned<LEVELS[currentLevel].total&&spawnClock>=nextSpawnDelay){spawnClock=0;if(currentLevel===8)armLevel8FlagIfNeeded();if(currentLevel===9)armLevel9MinerSpawns();spawnZombie()}
   if(currentLevel===5&&waveStage()>=2&&spawned<LEVELS[currentLevel].total&&impSpawnClock>=nextImpSpawnDelay)forceSpawnImp();
   updateWaveUI()
   if(skySunClock>=10){skySunClock-=10;createSkySun()}
@@ -1977,7 +2015,7 @@ function update(dt){
       reflector.hairCooldown=10;reflector.hairAttack=1.34;
       continue;
     }
-    const target=zombies.filter(z=>z.row===pea.row&&z.hp>0&&z.digState!=='underground'&&!z.mountedToId&&Math.abs(z.x-pea.x)<.24).sort((a,b)=>a.x-b.x)[0];
+    const target=zombies.filter(z=>z.hp>0&&!z.bossSlide&&z.digState!=='underground'&&!z.mountedToId&&(z.type==='workboss'||z.row===pea.row)&&Math.abs(z.x-pea.x)<.24).sort((a,b)=>a.x-b.x)[0];
     if(target){
       damageZombie(target,pea.damage||10,pea.fire?'firePea':'pea',!!pea.fire);
       if(pea.fire)applyBurn(target,pea.burnTotal||20,pea.burnDuration||2,'firePeaBurn');
@@ -1988,6 +2026,8 @@ function update(dt){
 
   for(const z of zombies){
     const slowMul=z.fanSlow?.5:1;
+    if(z.type==='workboss')continue;
+    if(z.bossSlide){z.bossSlide.age+=dt;const q=Math.min(1,z.bossSlide.age/z.bossSlide.dur);z.x=z.bossSlide.start+(z.bossSlide.end-z.bossSlide.start)*(q*q*(3-2*q));z.walkTick=(z.walkTick+dt*4)%1;if(q<1)continue;z.bossSlide=null;}
     if(z.raidDrop){z.raidDrop.age+=dt;if(z.raidDrop.age<z.raidDrop.dur){z.walkTick=(z.walkTick+dt*2.2)%1;continue;}z.raidDrop=null;z.airY=0;}
     if(z.hurt>0)z.hurt=Math.max(0,z.hurt-dt*slowMul);
     if(z.hitStun>0)z.hitStun=Math.max(0,z.hitStun-dt);
@@ -4307,6 +4347,28 @@ function drawCrawlerTrailCanvas(canvas,z){
   // Far end is organic now—no artificial stake/pin.
   c.fillStyle='#6d2029';c.beginPath();c.ellipse(w-7,h*.58,Math.max(4,h*.10),Math.max(3,h*.08),.3,0,Math.PI*2);c.fill();
 }
+function drawWorkBoss(c,z){
+  const t=gameTime,step=Math.sin(t*4.2),attack=level10Boss?.phase==='attack';c.save();c.clearRect(0,0,c.width,c.height);c.translate(c.width*.5,c.height*.5);c.scale(c.width/150,c.height/180);
+  c.fillStyle='#111719';c.beginPath();c.ellipse(0,62,36,10,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='#20282a';c.lineWidth=15;c.lineCap='round';c.beginPath();c.moveTo(-13,28);c.lineTo(-18,65+step*2);c.moveTo(13,28);c.lineTo(18,65-step*2);c.stroke();
+  c.fillStyle='#d39142';c.strokeStyle='#49301c';c.lineWidth=3;c.beginPath();c.roundRect(-31,-9,62,72,8);c.fill();c.stroke();
+  c.fillStyle='#e5b35b';c.fillRect(-24,2,48,44);c.strokeStyle='#7b5128';c.lineWidth=2;c.strokeRect(-24,2,48,44);
+  c.strokeStyle='#4a3725';c.lineWidth=5;c.beginPath();c.moveTo(-18,5);c.lineTo(-18,40);c.moveTo(18,5);c.lineTo(18,40);c.stroke();
+  const arm=attack?Math.sin(t*6)*18:step*4;c.strokeStyle='#d39142';c.lineWidth=11;c.beginPath();c.moveTo(-27,4);c.lineTo(-48-arm*.2,30+arm);c.moveTo(27,4);c.lineTo(47+arm*.2,26-arm);c.stroke();
+  c.fillStyle='#b87336';c.fillRect(-15,-31,30,23);c.fillStyle='#e1a75e';c.beginPath();c.ellipse(0,-43,23,24,0,0,Math.PI*2);c.fill();c.stroke();
+  c.fillStyle='#13191a';c.fillRect(-23,-51,46,7);c.fillStyle='#8dd4df';c.fillRect(-15,-45,11,7);c.fillRect(4,-45,11,7);c.strokeStyle='#151c1e';c.lineWidth=3;c.strokeRect(-15,-45,11,7);c.strokeRect(4,-45,11,7);
+  c.strokeStyle='#283437';c.lineWidth=5;c.beginPath();c.moveTo(18,-27);c.lineTo(28,-20);c.lineTo(22,-12);c.stroke();c.restore();
+}
+function drawBossTruck(c,open=0){
+  c.clearRect(0,0,c.width,c.height);c.save();c.translate(c.width*.5,c.height*.5);c.scale(c.width/220,c.height/220);
+  c.fillStyle='#111719';c.strokeStyle='#050708';c.lineWidth=5;c.beginPath();c.roundRect(-75,-98,150,196,13);c.fill();c.stroke();
+  c.fillStyle='#39464b';c.fillRect(-63,-86,126,170);c.strokeStyle='#829197';c.lineWidth=3;c.strokeRect(-63,-86,126,170);
+  c.fillStyle='#151d20';c.fillRect(-52,-70,104,110);c.fillStyle='#27363a';c.fillRect(-44,-60,88,92);
+  c.fillStyle='#9b2c2c';c.fillRect(-52,-80,104,7);c.fillStyle='#cbd1bf';c.font='bold 18px sans-serif';c.textAlign='center';c.fillText('铁甲战车',0,-88);
+  c.save();c.translate(0,84);c.rotate(-open*.16);c.fillStyle='#647278';c.fillRect(-62,-8,124,18);c.strokeStyle='#aab8bb';c.strokeRect(-62,-8,124,18);c.strokeStyle='#273337';c.lineWidth=3;for(let x=-45;x<50;x+=18){c.beginPath();c.moveTo(x,-7);c.lineTo(x+9,9);c.stroke();}c.restore();
+  c.fillStyle='#20292c';for(const x of [-50,50]){c.beginPath();c.arc(x,91,14,0,Math.PI*2);c.fill();c.fillStyle='#839094';c.beginPath();c.arc(x,91,6,0,Math.PI*2);c.fill();c.fillStyle='#20292c';}
+  c.restore();
+}
 function drawRaidRamp(c,extend,closing){
   const w=c.canvas.width,h=c.canvas.height;
   c.clearRect(0,0,w,h);c.save();
@@ -4402,6 +4464,10 @@ function render(){
     d.style.left=pctX(COLS-4.15);d.style.top=pctY(-.42);
     d.style.width=(5.15/COLS*100)+'%';d.style.height=(100/ROWS*1.9)+'%';
     const c=document.createElement('canvas');c.width=1000;c.height=440;const rampCtx=c.getContext('2d');if(rampCtx)drawRaidRamp(rampCtx,ext,r.closing);d.appendChild(c);frameUnits.appendChild(d);
+  }
+  if(currentLevel===10&&level10Boss){
+    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(8.75);truck.style.top=pctY(2.5);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='6';truck.style.pointerEvents='none';
+    const tc=document.createElement('canvas');tc.width=260;tc.height=330;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc,level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
   }
   if(currentLevel===7&&level7Event){
     const e=level7Event;
@@ -4581,6 +4647,11 @@ function render(){
   }
   for(const z of zombies){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
+    if(z.type==='workboss'){
+      d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(2.5);d.style.width=(2.25/COLS*100)+'%';d.style.height=(100/ROWS*2.7)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
+      const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc,z);d.appendChild(bc);
+      const hp=document.createElement('div');hp.className='bossHp';const fill=document.createElement('div');fill.className='bossHpFill';fill.style.width=(Math.max(0,Math.min(1,z.hp/z.maxHp))*100)+'%';hp.appendChild(fill);d.appendChild(hp);frameUnits.appendChild(d);continue;
+    }
     const bitePhase=z.eating?((z.attack%0.7)/0.7):0;
     if(z.type==='imp'){
       const bob=z.eating?0:Math.sin((z.walkTick||0)*Math.PI*2)*0.012;
@@ -4745,8 +4816,8 @@ function applyLevelUI(){
     let allowed=selectedPlants.includes(t);
     b.classList.toggle('hiddenPlant',!allowed);
   });
-  const noteMap={1:'第 1 关：两条草坪路线',2:'第 2 关：三条草坪路线',3:'第 3 关：半身爬行者',4:'第 4 关：混合尸潮',5:'第 5 关：五路草坪 · 低矮小鬼丧尸',6:'第 6 关：五路草坪 · 长发丧尸 · 反弹豌豆',7:'第 7 关：铁架施工 · 飞机投桶突袭',8:'第 8 关：脑浆感染 · 三波旗帜 · 解锁十字吹风机'};
-  const subMap={1:'1-1 · 特勤试炼 · 双线防守',2:'1-2 · 狂暴来袭 · 三线防守',3:'1-3 · 地面威胁 · 爬行者来袭',4:'1-4 · 尸潮进阶 · 混合推进',5:'1-5 · 五线防区 · 小鬼丧尸登场',6:'1-6 · 阴发来袭 · 长发丧尸登场',7:'1-7 · 空投突袭 · 铁桶防线',8:'1-8 · 脑浆感染 · 三旗帜增益波',9:'1-9 · 矿工破阵 · 地下威胁'};
+  const noteMap={1:'第 1 关：两条草坪路线',2:'第 2 关：三条草坪路线',3:'第 3 关：半身爬行者',4:'第 4 关：混合尸潮',5:'第 5 关：五路草坪 · 低矮小鬼丧尸',6:'第 6 关：五路草坪 · 长发丧尸 · 反弹豌豆',7:'第 7 关：铁架施工 · 飞机投桶突袭',8:'第 8 关：脑浆感染 · 三波旗帜 · 解锁十字吹风机',10:'第 10 关：战车 Boss · 装卸突袭'};
+  const subMap={1:'1-1 · 特勤试炼 · 双线防守',2:'1-2 · 狂暴来袭 · 三线防守',3:'1-3 · 地面威胁 · 爬行者来袭',4:'1-4 · 尸潮进阶 · 混合推进',5:'1-5 · 五路防区 · 小鬼丧尸登场',6:'1-6 · 阴发来袭 · 长发丧尸登场',7:'1-7 · 空投突袭 · 铁桶防线',8:'1-8 · 脑浆感染 · 三旗帜增益波',9:'1-9 · 矿工破阵 · 地下威胁',10:'1-10 · 战车 Boss · 最后一波'};
   document.getElementById('levelNote').textContent=noteMap[currentLevel]||`第 ${currentLevel} 关`;
   document.querySelector('.sub').textContent=subMap[currentLevel]||`1-${currentLevel} · 测试关卡`;
 }
