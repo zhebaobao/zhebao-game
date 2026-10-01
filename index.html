@@ -817,6 +817,7 @@ function fadeBattleBgm(target,duration=520){
 function playBattleBgm(){
   if(!battleBgm||musicMuted)return;
   if(currentLevel===10&&level10Boss?.musicSwitched){playBossBgm();return;}
+  stopBossBgm();
   // Pause the menu track immediately. A long fade can keep two media elements active
   // and makes some mobile WebViews reject the second play() call.
   if(idleBgm&&!idleBgm.paused)idleBgm.pause();
@@ -905,12 +906,11 @@ async function forceEnableMusic(){
   if(!idleBgm){setAudioDiag('找不到待机音频元素');return;}
   musicMuted=false;
   musicVolume=Math.max(.6,musicVolume||0);
-  idleBgm.muted=false;battleBgm.muted=false;
-  idleBgm.volume=idleTargetVolume();
+  for(const media of [idleBgm,battleBgm,bossBgm])if(media)media.muted=false;
   try{
-    idleBgm.load();
-    await idleBgm.play();
-    audioUnlocked=true;idleBgmUnlocked=true;
+    const ok=await unlockGameAudio();
+    syncGameMusic();
+    if(!ok)throw new Error('浏览器仍未允许播放音频');
     setAudioDiag('播放成功 ✓');
     updateMusicControls();
   }catch(err){
@@ -1081,12 +1081,12 @@ const LEVELS={
   7:{total:26,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,initialSun:175,firstDelay:7.5,spawnMin:6.0,spawnMax:8.2},
   8:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,initialSun:200,firstDelay:7.0,spawnMin:5.8,spawnMax:7.9},
   9:{total:32,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,miners:true,initialSun:225,firstDelay:7.0,spawnMin:5.4,spawnMax:7.4},
-  10:{total:22,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:4.5,spawnMin:5.5,spawnMax:7.5}
+  10:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:4.5,spawnMin:4.8,spawnMax:6.5}
 };
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,magnetUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 const TEST_MODE=true;
-let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=4;
+let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=10;
 async function requestGameFullscreen(){
   const el=document.documentElement;
   if(document.fullscreenElement||document.webkitFullscreenElement)return true;
@@ -1313,10 +1313,10 @@ function magnetAbsorb(p){
 }
 function waveProgress(){
   if(currentLevel===7&&level7Event)return Math.min(1,((level7Event.wave-1)+Math.min(1,level7Event.waveSpawned[level7Event.wave-1]/Math.max(1,level7Event.waveTargets[level7Event.wave-1])))/4);
-  // Level 10 has a short ground prelude followed by the truck's 18 releases.
+  // Level 10 has three paced ground waves followed by the truck's 18 releases.
   // Keep the progress meter tied to those two phases instead of jumping to the
   // final flag as soon as the boss starts emitting.
-  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,(level10IntroTarget+released)/(level10IntroTarget+18)):Math.min(.42,spawned/Math.max(1,level10IntroTarget)*.42);}
+  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,.75+released/18*.25):Math.min(.75,spawned/Math.max(1,level10IntroTarget)*.75);}
   const cfg=LEVELS[currentLevel];return cfg.total?Math.min(1,spawned/cfg.total):0;
 }
 function waveStage(){if(currentLevel===7&&level7Event)return level7Event.wave-1;if(currentLevel===10)return level10Boss?3:Math.min(2,Math.floor(waveProgress()*4));return Math.min(3,Math.floor(waveProgress()*4));}
@@ -4501,12 +4501,20 @@ function render(){
     const truckX=10.85+(8.75-10.85)*driveEase;
     let ext=Math.max(0,Math.min(1,(r.age-.78)/Math.max(.2,r.extendDur-.78)));
     if(r.closing)ext*=Math.max(0,1-r.closeAge/1.25);
+    if(ext>.01){
+      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.55);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.3/COLS*100)+'%';ramp.style.height=(100/ROWS*3.05)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
+      const rc=document.createElement('canvas');rc.width=620;rc.height=260;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),ext,!!r.closing);ramp.appendChild(rc);frameUnits.appendChild(ramp);
+    }
     const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(truckX);d.style.top=pctY(ROWS/2);
     d.style.width=(2.35/COLS*100)+'%';d.style.height=(100/ROWS*3.05)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
     const c=document.createElement('canvas');c.width=160;c.height=204;c.style.width='100%';c.style.height='100%';drawBossTruck(c.getContext('2d'),ext);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===10&&level10Boss){
     const drive=Math.max(0,Math.min(1,level10Boss.age/1.15)),driveEase=drive*drive*(3-2*drive),truckX=10.85+(8.75-10.85)*driveEase;
+    if(level10Boss.truckOpen>.01){
+      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.55);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.3/COLS*100)+'%';ramp.style.height=(100/ROWS*3.05)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
+      const rc=document.createElement('canvas');rc.width=620;rc.height=260;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),level10Boss.truckOpen,false);ramp.appendChild(rc);frameUnits.appendChild(ramp);
+    }
     const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(truckX);truck.style.top=pctY(ROWS/2);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
     const tc=document.createElement('canvas');tc.width=160;tc.height=204;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc.getContext('2d'),level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
   }
@@ -4863,7 +4871,10 @@ function applyLevelUI(){
   document.querySelector('.sub').textContent=subMap[currentLevel]||`1-${currentLevel} · 测试关卡`;
 }
 function startLevel(n){
-  level10Boss=null;level10IntroTarget=4;
+  cancelAnimationFrame(battleBgmFadeRAF);battleBgmFadeRAF=0;
+  if(battleBgm){battleBgm.pause();battleBgm.currentTime=0;battleBgm.volume=battleTargetVolume();}
+  stopBossBgm();
+  level10Boss=null;level10IntroTarget=10;
   currentLevel=n;const cfg=LEVELS[n];ROWS=cfg.rows.length;buildGrid();
   battleRoot.classList.remove('out');levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');rewardStage.classList.remove('go');
   plants=[];zombies=[];brainDrops=[];level8FlagIndex=0;level8FlagBurst=[];level9MinerQueue=[];level9MinerIntroDone=false;level9MinerMidDone=false;level9MinerLateDone=false;peas=[];suns=[];looseBuckets=[];looseBucketDrag=null;magnetFx=[];deathFx=[];coneFx=[];blastFx=[];peaImpactFx=[];bloodFx=[];deathBloodDrops=[];groundBloodFx=[];armFx=[];hpBreakFx=[];fireTiles=[];chainsawFx=[];chainsaws=cfg.rows.map(row=>({row,used:false,active:false,x:-.08}));document.getElementById('infectionOverlay')?.classList.remove('show');cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,glove:0};sun=cfg.initialSun;kills=0;spawned=0;selected=null;running=false;battleStarted=false;glovePlantId=null;gloveFx=null;gloveFx=null;ended=false;levelCompletePending=false;nextId=1;
@@ -5160,33 +5171,6 @@ function closeSettings(resume=true){
   settingsWasRunning=false;
 }
 
-const musicVolumeSlider=document.getElementById('musicVolume');
-const musicVolumeLabel=document.getElementById('musicVolumeLabel');
-const musicMute=document.getElementById('musicMute');
-function syncMusicSettingsUI(){
-  if(!musicVolumeSlider)return;
-  musicVolumeSlider.value=String(Math.round(musicVolume*100));
-  musicVolumeLabel.textContent=musicMuted?'静音':Math.round(musicVolume*100)+'%';
-  musicMute.textContent=musicMuted?'取消静音':'静音';
-}
-function applyMusicVolume(){
-  localStorage.setItem(MUSIC_VOL_KEY,String(musicVolume));
-  if(idleBgm&&!idleBgm.paused)idleBgm.volume=idleTargetVolume();
-  if(battleBgm&&!battleBgm.paused)battleBgm.volume=battleTargetVolume();
-  syncMusicSettingsUI();
-}
-musicVolumeSlider?.addEventListener('input',async e=>{
-  await unlockGameAudio();
-  musicVolume=Number(e.target.value)/100;
-  if(musicVolume>0)musicMuted=false;
-  applyMusicVolume();
-  if(!battleStarted&&idleBgm?.paused)playIdleBgm();
-  if(battleStarted&&battleBgm?.paused)playBattleBgm();
-});
-musicMute?.addEventListener('click',async()=>{
-  await unlockGameAudio();musicMuted=!musicMuted;applyMusicVolume();
-});
-syncMusicSettingsUI();
 settingsGear.addEventListener('click',openSettings);
 const qualityToggle=document.getElementById('qualityToggle');
 function syncQualityToggle(){qualityToggle.textContent='画质：'+({auto:'自动',high:'高清',smooth:'流畅'}[qualityMode]);}
@@ -5204,6 +5188,7 @@ settingsResume.addEventListener('click',()=>closeSettings(true));
 settingsRestart.addEventListener('click',()=>{settingsOverlay.classList.remove('show');settingsOverlay.setAttribute('aria-hidden','true');settingsWasRunning=false;reset();});
 settingsMenu.addEventListener('click',()=>{
   settingsOverlay.classList.remove('show');settingsOverlay.setAttribute('aria-hidden','true');settingsWasRunning=false;running=false;battleStarted=false;glovePlantId=null;gloveFx=null;
+  syncGameMusic();
   toggle.textContent='开始战斗';
   battlePrepOverlay.classList.remove('show');battlePrepOverlay.setAttribute('aria-hidden','true');battleRoot.classList.add('out');levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');document.getElementById('mainMenuScreen').classList.add('show');
 });
@@ -5262,6 +5247,7 @@ const loadingScreen=document.getElementById('loadingScreen'),loadingFill=documen
 const mainMenuScreen=document.getElementById('mainMenuScreen'),exitScreen=document.getElementById('exitScreen');
 function showMainMenu(){
   running=false;battleStarted=false;battleRoot.classList.remove('plantBulletTime');settingsOverlay.classList.remove('show');battlePrepOverlay.classList.remove('show');battlePrepOverlay.setAttribute('aria-hidden','true');levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');almanacScreen.classList.remove('show');exitScreen.classList.remove('show');
+  syncGameMusic();
   battleRoot.classList.add('out');mainMenuScreen.classList.add('show');
 }
 // 初始战斗界面保持在开场层后方；先给手机一个明确的加载反馈，再进入开场。
