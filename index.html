@@ -2008,7 +2008,7 @@ function update(dt){
       }
       if(z.digState==='digging'){
         z.digAge+=dt*slowMul;
-        // Full-body 1.18 s choreography: crouch, high jump, head-first flip, then disappear.
+        // Articulated 1.18 s dive: fold, reach, launch, then enter the soil head and hands first.
         if(z.digAge>=1.18){z.digState='underground';z.digAge=0;}
         continue;
       }
@@ -2033,7 +2033,7 @@ function update(dt){
         continue;
       }
       if(z.digState==='rising'){
-        z.digAge+=dt*slowMul;if(z.digAge<.48)continue;
+        z.digAge+=dt*slowMul;if(z.digAge<.82)continue;
         z.digState='done';z.digAge=0;
       }
     }
@@ -2075,13 +2075,27 @@ function update(dt){
           }
 
         }
+      }else if(z.type==='miner'){
+        // Miner bites use a real pose phase. Preserve the old 33 DPS, but land each
+        // 0.7 s cycle's damage exactly when the jaw visibly clamps shut.
+        z.eating=true;
+        const biteCycle=.7,oldAttack=z.attack||0;
+        z.attack=oldAttack+dt*slowMul;
+        if(Math.floor(z.attack/biteCycle)!==Math.floor(oldAttack/biteCycle))z.minerBiteLanded=false;
+        const minerBitePhase=(z.attack%biteCycle)/biteCycle;
+        if(minerBitePhase>=.52&&!z.minerBiteLanded){
+          z.minerBiteLanded=true;
+          damagePlant(target,33*biteCycle);
+          bloodFx.push({id:nextId++,x:target.col+.52,y:target.row+.48,age:0,life:.35,mode:z.eatMode});
+          playSfx('bite',.9,'bite',85,z.x);
+        }
       }else{
         z.eating=true;z.attack+=dt*slowMul;damagePlant(target,33*dt*slowMul); z.bloodTick=(z.bloodTick||0)+dt;
         if(z.bloodTick>.68){ z.bloodTick=0; bloodFx.push({id:nextId++,x:target.col+.52,y:target.row+.48,age:0,life:.35,mode:z.eatMode}); }
         if(z.attack>=.7){playSfx('bite',.9,'bite',85,z.x);z.attack-=.7;}
       }
     }else{
-      z.eating=false;z.eatMode=null;z.attack=0;
+      z.eating=false;z.eatMode=null;z.attack=0;z.minerBiteLanded=false;
       if(z.hitStun<=0&&z.lungeTime<=0){
         if(z.type==='crawler'){
           z.crawlPhase=(z.crawlPhase+dt*slowMul*.18)%1;
@@ -3029,92 +3043,193 @@ function drawPlantBucketHelmet(x,p){
 }
 
 
-function minerPose(z){
+function minerEase(v){v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)}
+function minerPose(z,bitePhase=0){
   const phase=((z.walkTick||0)%1+1)%1*Math.PI*2;
-  const digging=z.digState==='digging',u=digging?Math.max(0,Math.min(1,(z.digAge||0)/1.18)):0;
-  let jump=0,rot=0,sink=0,crouch=0,tool=-.55;
-  if(digging){
-    // 0-.18 crouch; .18-.55 explosive jump + forward somersault; .55-.78 head-first dive; .78-1.0 disappear.
-    if(u<.18){const q=u/.18;crouch=5*q;tool=-.55-1.0*q;}
-    else if(u<.55){const q=(u-.18)/.37;jump=Math.sin(q*Math.PI)*27;rot=-(q*q)*Math.PI*.92;crouch=5*(1-q);tool=-1.55+.35*q;}
-    else if(u<.78){const q=(u-.55)/.23;jump=4*(1-q);rot=-Math.PI*.92-.16*q;sink=9*q;tool=-1.20+.48*q;}
-    else{const q=(u-.78)/.22;rot=-Math.PI*1.08;sink=9+42*q;tool=-.72;}
+  const digging=z.digState==='digging';
+  const rising=Number.isFinite(z.risePose);
+  const eating=!!z.eatMode&&!digging&&!rising;
+  const u=digging?Math.max(0,Math.min(1,(z.digAge||0)/1.18)):0;
+  const bp=eating?Math.max(0,Math.min(1,bitePhase)):0;
+  const biteIn=minerEase(bp/.28),biteOut=minerEase((bp-.68)/.32);
+  const biteHold=biteIn*(1-biteOut);
+  const biteImpact=Math.exp(-Math.pow((bp-.54)/.055,2));
+  const jawOpen=eating?minerEase((bp-.13)/.18)*(1-minerEase((bp-.42)/.10)):0;
+  let rootX=0,rootY=0,crouch=0,torsoLean=0,shoulderRoll=0,headLag=0;
+  let armReach=0,diveReach=0,launch=0,enter=0;
+  const walking=!digging&&!rising&&!eating;
+  if(walking){
+    rootY=Math.sin(phase*2)*.55;
+    torsoLean=Math.sin(phase-.55)*.065;
+    shoulderRoll=Math.sin(phase+Math.PI)*1.45;
+    headLag=Math.sin(phase-.95)*.045;
   }
-  return {phase,u,digging,jump,rot,sink,crouch,tool};
+  if(eating){
+    // A discrete upper-body pose: brace, reach, bite, recoil, recover.
+    rootX=-2.4*biteHold+1.1*biteImpact;
+    crouch=1.8*biteHold;
+    torsoLean=-.29*biteHold+.085*biteImpact;
+    shoulderRoll=-2.2*biteHold;
+    headLag=-.13*biteHold+.12*biteImpact;
+    armReach=biteHold;
+  }
+  if(digging){
+    const bend=minerEase(u/.27);
+    diveReach=minerEase((u-.18)/.28);
+    launch=minerEase((u-.48)/.22);
+    enter=minerEase((u-.67)/.33);
+    // No rigid 180-degree sprite flip: pelvis, spine, arms and legs follow a diving chain.
+    rootX=-3.5*launch-8.5*enter;
+    rootY=-Math.sin(Math.min(1,launch)*Math.PI)*12+66*enter;
+    crouch=8.5*bend*(1-launch);
+    torsoLean=-.56*bend-.25*diveReach-.12*launch+.12*enter;
+    shoulderRoll=-3*diveReach;
+    headLag=-.10*diveReach+.06*enter;
+  }
+  if(rising){
+    const ru=minerEase(z.risePose);
+    crouch=5.5*(1-ru);
+    torsoLean=-.42*(1-ru);
+    shoulderRoll=-2.5*(1-ru);
+    headLag=.10*(1-ru);
+  }
+  const gazeX=eating?-.78:(digging?(-.38-.28*diveReach):Math.sin(phase-.85)*.22);
+  const gazeY=eating?.46:(digging?.60:.28+Math.sin(phase*.5)*.08);
+  return {phase,u,digging,rising,eating,rootX,rootY,crouch,torsoLean,shoulderRoll,headLag,armReach,diveReach,launch,enter,jawOpen,biteImpact,gazeX,gazeY};
 }
 function drawMinerZombie(x,z,bitePhase=0){
-  const P=minerPose(z),walk=!P.digging,step=Math.sin(P.phase),lift=Math.max(0,Math.sin(P.phase));
+  const P=minerPose(z,bitePhase),step=Math.sin(P.phase);
+  const liftL=Math.max(0,step),liftR=Math.max(0,-step);
+  const joint=(p,len,a)=>({x:p.x+Math.sin(a)*len,y:p.y-Math.cos(a)*len});
+  const pelvis={x:32+P.rootX,y:43+P.rootY+P.crouch};
+  const spineLen=17-P.crouch*.20;
+  const shoulder=joint(pelvis,spineLen,P.torsoLean);
+  const neck=joint(shoulder,3.8,P.torsoLean+P.headLag*.35);
+  const head=joint(neck,9.4,P.torsoLean*.56+P.headLag);
+  const axisX=Math.sin(P.torsoLean),axisY=-Math.cos(P.torsoLean);
+  const sideX=Math.cos(P.torsoLean),sideY=Math.sin(P.torsoLean);
+
   x.save();
 
-  // One root transform drives EVERY body part: this is the crucial difference from the old pasted-on version.
-  x.translate(32,39-P.jump+P.sink);
-  x.rotate(P.rot);
-  x.translate(-32,-39+P.crouch);
-
-  // contact shadow remains world-oriented enough to sell the jump
-  if(!P.digging||P.u<.78){
-    x.save();x.translate(0,P.jump-P.sink);x.rotate(-P.rot);
-    x.globalAlpha=.24*(1-Math.min(1,P.sink/38));x.fillStyle='#111';
-    x.beginPath();x.ellipse(32,59,15-P.jump*.12,3,0,0,Math.PI*2);x.fill();x.restore();
+  // World-space contact shadow stays planted while the articulated body jumps and dives.
+  if(!P.digging||P.u<.83){
+    const air=Math.max(0,43-pelvis.y),fade=P.digging?1-Math.max(0,(P.u-.68)/.22):1;
+    x.globalAlpha=.24*Math.max(0,fade);x.fillStyle='#111';
+    x.beginPath();x.ellipse(32,59,Math.max(5,15-air*.18),3,0,0,Math.PI*2);x.fill();x.globalAlpha=1;
   }
 
-  // legs - attached to pelvis, not inherited from normal-zombie renderer
-  const hipL={x:29,y:43},hipR={x:37,y:43};
-  const ldx=walk?step*3.6:0,rdx=-ldx;
-  x.lineCap='round';x.strokeStyle='#17282d';x.lineWidth=7;
-  x.beginPath();x.moveTo(hipL.x,hipL.y);x.lineTo(27+ldx*.45,50);x.lineTo(25+ldx,58-lift*2);
-  x.moveTo(hipR.x,hipR.y);x.lineTo(39+rdx*.45,50);x.lineTo(41+rdx,58-Math.max(0,-step)*2);x.stroke();
-  x.strokeStyle='#241d19';x.lineWidth=4.5;
-  x.beginPath();x.moveTo(21+ldx,59-lift*2);x.lineTo(28+ldx,59-lift*2);x.moveTo(37+rdx,59-Math.max(0,-step)*2);x.lineTo(44+rdx,59-Math.max(0,-step)*2);x.stroke();
+  // Legs are three-joint chains. Walking, bracing and the trailing dive all use distinct poses.
+  let kneeL,footL,kneeR,footR;
+  if(P.digging){
+    const trail=P.launch+P.enter;
+    kneeL={x:pelvis.x+5+trail*6,y:pelvis.y+7-trail*7};
+    footL={x:pelvis.x+10+trail*10,y:pelvis.y+14-trail*13};
+    kneeR={x:pelvis.x-1+trail*7,y:pelvis.y+8-trail*5};
+    footR={x:pelvis.x+5+trail*13,y:pelvis.y+15-trail*10};
+  }else if(P.eating||P.rising){
+    const brace=P.armReach||0;
+    kneeL={x:pelvis.x-5-brace*2,y:pelvis.y+8};footL={x:pelvis.x-10-brace*2,y:pelvis.y+15};
+    kneeR={x:pelvis.x+6,y:pelvis.y+8};footR={x:pelvis.x+10,y:pelvis.y+15};
+  }else{
+    kneeL={x:pelvis.x-4+step*2.2,y:pelvis.y+8-liftL*1.3};footL={x:pelvis.x-8+step*4.4,y:pelvis.y+15-liftL*2.4};
+    kneeR={x:pelvis.x+5-step*2.2,y:pelvis.y+8-liftR*1.3};footR={x:pelvis.x+9-step*4.4,y:pelvis.y+15-liftR*2.4};
+  }
+  x.lineCap='round';x.lineJoin='round';x.strokeStyle='#17282d';x.lineWidth=7;
+  x.beginPath();x.moveTo(pelvis.x-3,pelvis.y);x.lineTo(kneeL.x,kneeL.y);x.lineTo(footL.x+2,footL.y-1);
+  x.moveTo(pelvis.x+3,pelvis.y);x.lineTo(kneeR.x,kneeR.y);x.lineTo(footR.x-2,footR.y-1);x.stroke();
+  x.strokeStyle='#241d19';x.lineWidth=4.6;
+  x.beginPath();x.moveTo(footL.x-4,footL.y);x.lineTo(footL.x+4,footL.y);x.moveTo(footR.x-4,footR.y);x.lineTo(footR.x+4,footR.y);x.stroke();
 
-  // torso / shirt follows the same root skeleton
+  // Torso is built on the pelvis-to-shoulder axis, so hips, chest and shoulders bend continuously.
+  const sl={x:shoulder.x-sideX*8.6,y:shoulder.y-sideY*8.6};
+  const sr={x:shoulder.x+sideX*8.6,y:shoulder.y+sideY*8.6};
+  const pl={x:pelvis.x-sideX*7.2,y:pelvis.y-sideY*7.2};
+  const pr={x:pelvis.x+sideX*7.2,y:pelvis.y+sideY*7.2};
   x.fillStyle='#765142';x.strokeStyle='#322822';x.lineWidth=1.2;
-  x.beginPath();x.moveTo(24,25);x.quadraticCurveTo(32,22,41,26);x.lineTo(43,43);x.quadraticCurveTo(34,47,24,43);x.closePath();x.fill();x.stroke();
-
-  // worn overalls: curved bib + straps actually attached at shoulder and waist
+  x.beginPath();x.moveTo(sl.x,sl.y);x.quadraticCurveTo(shoulder.x+axisX*2,shoulder.y+axisY*2,sr.x,sr.y);
+  x.lineTo(pr.x,pr.y);x.quadraticCurveTo(pelvis.x,pelvis.y+2,pl.x,pl.y);x.closePath();x.fill();x.stroke();
+  const bibTop=joint(pelvis,11.5,P.torsoLean);
   x.fillStyle='#314b56';x.strokeStyle='#182c33';
-  x.beginPath();x.moveTo(27,30);x.quadraticCurveTo(33,28,39,31);x.lineTo(41,43);x.quadraticCurveTo(34,46,26,43);x.closePath();x.fill();x.stroke();
-  x.strokeStyle='#496b77';x.lineWidth=2.6;
-  x.beginPath();x.moveTo(28,32);x.quadraticCurveTo(26,27,25,25);x.moveTo(38,32);x.quadraticCurveTo(40,27,41,26);x.stroke();
-  x.fillStyle='#263d46';x.beginPath();x.roundRect(30,35,7,5,1);x.fill();
-  x.strokeStyle='rgba(170,198,204,.42)';x.lineWidth=.8;x.beginPath();x.moveTo(27,42);x.lineTo(31,45);x.moveTo(40,41);x.lineTo(36,45);x.stroke();
+  x.beginPath();x.moveTo(bibTop.x-sideX*5.7,bibTop.y-sideY*5.7);x.lineTo(bibTop.x+sideX*5.7,bibTop.y+sideY*5.7);
+  x.lineTo(pr.x,pr.y);x.quadraticCurveTo(pelvis.x,pelvis.y+2,pl.x,pl.y);x.closePath();x.fill();x.stroke();
+  x.strokeStyle='#496b77';x.lineWidth=2.5;
+  x.beginPath();x.moveTo(sl.x+sideX*2,sl.y+sideY*2);x.lineTo(bibTop.x-sideX*3.8,bibTop.y-sideY*3.8);
+  x.moveTo(sr.x-sideX*2,sr.y-sideY*2);x.lineTo(bibTop.x+sideX*3.8,bibTop.y+sideY*3.8);x.stroke();
 
-  // neck + head are physically attached to torso and inherit the somersault.
-  x.strokeStyle='#53604f';x.lineWidth=5;x.beginPath();x.moveTo(32,27);x.lineTo(33,22);x.stroke();
-  const headBob=walk?Math.sin(P.phase-.4)*.8:0;
-  x.save();x.translate(33,15+headBob);x.rotate(walk?Math.sin(P.phase-.6)*.035:0);
+  // Arm targets are state-specific. The front arm visibly reaches the plant during eating;
+  // both hands spear ahead before the dive, with elbows following instead of teleporting.
+  const frontShoulder={x:sl.x+axisX*P.shoulderRoll*.25,y:sl.y+P.shoulderRoll};
+  const rearShoulder={x:sr.x-axisX*P.shoulderRoll*.18,y:sr.y-P.shoulderRoll*.72};
+  let frontHand,rearHand,frontElbow,rearElbow;
+  if(P.digging){
+    frontHand={x:head.x-9-8*P.diveReach,y:head.y+7+2*P.enter};
+    rearHand={x:head.x-5-7*P.diveReach,y:head.y+12+3*P.enter};
+    frontElbow={x:(frontShoulder.x+frontHand.x)*.5-3*P.diveReach,y:(frontShoulder.y+frontHand.y)*.5+3};
+    rearElbow={x:(rearShoulder.x+rearHand.x)*.5+1,y:(rearShoulder.y+rearHand.y)*.5+4};
+  }else if(P.eating){
+    frontHand={x:frontShoulder.x-10-10*P.armReach,y:frontShoulder.y+9+1.5*P.armReach};
+    rearHand={x:rearShoulder.x+1,y:rearShoulder.y+13};
+    frontElbow={x:frontShoulder.x-7-4*P.armReach,y:frontShoulder.y+5};
+    rearElbow={x:rearShoulder.x+5,y:rearShoulder.y+6};
+  }else{
+    const swing=Math.sin(P.phase)*4;
+    frontHand={x:frontShoulder.x-4+swing,y:frontShoulder.y+13};
+    rearHand={x:rearShoulder.x+4-swing,y:rearShoulder.y+13};
+    frontElbow={x:frontShoulder.x-6+swing*.45,y:frontShoulder.y+6};
+    rearElbow={x:rearShoulder.x+6-swing*.45,y:rearShoulder.y+6};
+  }
+
+  // Pickaxe is anchored to the rear hand while biting, and to the two-hand diving grip underground.
+  const toolHand=P.digging?{x:(frontHand.x+rearHand.x)*.5,y:(frontHand.y+rearHand.y)*.5}:rearHand;
+  const toolAngle=P.digging?(-1.15+.20*P.diveReach+.16*P.enter):(-.58+step*.14);
+  x.save();x.translate(toolHand.x,toolHand.y);x.rotate(toolAngle);
+  x.strokeStyle='#704b2b';x.lineWidth=3;x.beginPath();x.moveTo(-1,-2);x.lineTo(2,23);x.stroke();
+  x.strokeStyle='#4d5557';x.lineWidth=3.2;x.beginPath();x.moveTo(-10,-2);x.quadraticCurveTo(0,-7,11,-2);x.stroke();x.restore();
+
+  x.strokeStyle='#252c27';x.lineWidth=6;
+  x.beginPath();x.moveTo(frontShoulder.x,frontShoulder.y);x.lineTo(frontElbow.x,frontElbow.y);x.lineTo(frontHand.x,frontHand.y);
+  x.moveTo(rearShoulder.x,rearShoulder.y);x.lineTo(rearElbow.x,rearElbow.y);x.lineTo(rearHand.x,rearHand.y);x.stroke();
+  x.strokeStyle='#687461';x.lineWidth=3.8;
+  x.beginPath();x.moveTo(frontShoulder.x,frontShoulder.y);x.lineTo(frontElbow.x,frontElbow.y);x.lineTo(frontHand.x,frontHand.y);
+  x.moveTo(rearShoulder.x,rearShoulder.y);x.lineTo(rearElbow.x,rearElbow.y);x.lineTo(rearHand.x,rearHand.y);x.stroke();
+
+  // Head recoil is separate from the chest, which makes the bite impact readable even with the mouth hidden.
+  const headKick=P.biteImpact*2.4;
+  x.save();x.translate(head.x+headKick,head.y-P.biteImpact*.7);x.rotate(P.torsoLean*.52+P.headLag);
   x.fillStyle='#66725f';x.strokeStyle='#20261f';x.lineWidth=1.4;
-  x.beginPath();x.moveTo(-7,-8);x.bezierCurveTo(2,-12,9,-6,8,2);x.bezierCurveTo(8,8,4,12,-2,12);x.bezierCurveTo(-9,11,-12,5,-10,-2);x.closePath();x.fill();x.stroke();
-  // uneven eyes
-  x.fillStyle='#e5dfc5';x.beginPath();x.ellipse(-4,-1,3.7,4.3,-.15,0,Math.PI*2);x.ellipse(4,-2,4.3,5,.12,0,Math.PI*2);x.fill();
-  x.fillStyle='#20231d';x.beginPath();x.arc(-3.2,-.5,1.1,0,Math.PI*2);x.arc(3.2,-1.2,1.2,0,Math.PI*2);x.fill();
-  x.fillStyle='#2c2922';x.beginPath();x.moveTo(-4,7);x.lineTo(5,7);x.lineTo(3,11);x.lineTo(-3,10);x.closePath();x.fill();
-  x.fillStyle='#ded3b0';x.fillRect(-2,7,2,3);x.fillRect(2,7,2,2.5);
-  // helmet is locked to skull
+  x.beginPath();x.moveTo(-7,-8);x.bezierCurveTo(1,-11,9,-7,8,1);x.bezierCurveTo(8,8,4,11,-2,12);x.bezierCurveTo(-9,11,-12,5,-10,-2);x.closePath();x.fill();x.stroke();
+
+  // Small, hooded, asymmetric eyes: animation comes from lids and gaze, not giant rolling whites.
+  const blink=(!P.eating&&!P.digging&&Math.sin(P.phase*.5+z.id)>.965)?.30:1;
+  const eye=(ex,ey,rx,ry,lid,gazeScale)=>{
+    x.save();x.beginPath();x.ellipse(ex,ey,rx,Math.max(.35,ry*blink),0,0,Math.PI*2);x.clip();
+    x.fillStyle='#d8d2b9';x.fillRect(ex-rx-1,ey-ry-1,rx*2+2,ry*2+2);
+    x.fillStyle='#1c211b';x.beginPath();x.arc(ex+P.gazeX*gazeScale,ey+P.gazeY*.45,.72,0,Math.PI*2);x.fill();
+    x.restore();
+    x.fillStyle='#66725f';x.fillRect(ex-rx-1,ey-ry-1,rx*2+2,Math.max(.45,lid));
+  };
+  eye(-3.6,-1.0,2.35,1.65,1.25,1);eye(3.2,-1.8,2.05,1.42,1.52,.82);
+  x.strokeStyle='#30382e';x.lineWidth=1.15;x.beginPath();x.moveTo(-6.4,-3.0);x.quadraticCurveTo(-3.8,-4.2,-1.5,-3.1);
+  x.moveTo(1.0,-3.7);x.quadraticCurveTo(3.0,-4.8,5.2,-3.4);x.stroke();
+
+  // Jaw opens wide during the reach, clamps at phase .52, then the head/chest recoil.
+  x.fillStyle='#2b2520';x.beginPath();x.moveTo(-4.8,6.1);x.quadraticCurveTo(.2,4.8,5.2,6.3);
+  x.lineTo(4.0,8.2);x.quadraticCurveTo(0,9.1,-4.2,8.0);x.closePath();x.fill();
+  x.save();x.translate(0,P.jawOpen*4.8);
+  x.fillStyle='#53604f';x.strokeStyle='#20261f';x.lineWidth=1;
+  x.beginPath();x.moveTo(-5,7.1);x.quadraticCurveTo(0,10.7,5,7.2);x.lineTo(3.7,10.8);x.quadraticCurveTo(0,12,-3.8,10.6);x.closePath();x.fill();x.stroke();
+  x.fillStyle='#ded3b0';x.fillRect(-2.9,7.1,1.7,2.6);x.fillRect(1.1,7.0,1.8,2.3);x.restore();
+
+  // Helmet remains attached to the skull through every lean, bite and dive.
   x.fillStyle='#c69a2c';x.strokeStyle='#45371d';x.beginPath();x.arc(0,-8,10,Math.PI,Math.PI*2);x.lineTo(11,-7);x.lineTo(-11,-7);x.closePath();x.fill();x.stroke();
   x.fillStyle='#e6b83b';x.fillRect(-12,-8,24,2.5);
   x.fillStyle='#f3e8aa';x.strokeStyle='#5a4b28';x.beginPath();x.arc(-7,-9,3.1,0,Math.PI*2);x.fill();x.stroke();
   x.restore();
 
-  // arms and pickaxe share the same root transform. During the jump both hands commit to the tool.
-  const dig=P.digging;
-  let handL={x:21,y:37},handR={x:45,y:37};
-  if(dig){handL={x:25,y:31};handR={x:40,y:30};}
-  x.strokeStyle='#252c27';x.lineWidth=6;x.beginPath();x.moveTo(25,28);x.lineTo(handL.x,handL.y);x.moveTo(41,29);x.lineTo(handR.x,handR.y);x.stroke();
-  x.strokeStyle='#687461';x.lineWidth=4;x.beginPath();x.moveTo(25,28);x.lineTo(handL.x,handL.y);x.moveTo(41,29);x.lineTo(handR.x,handR.y);x.stroke();
-
-  // pickaxe pivots between the two hands, so it cannot visually detach from him.
-  const hx=(handL.x+handR.x)*.5,hy=(handL.y+handR.y)*.5;
-  x.save();x.translate(hx,hy);x.rotate(P.tool+(walk?step*.18:0));
-  x.strokeStyle='#704b2b';x.lineWidth=3;x.beginPath();x.moveTo(-2,-2);x.lineTo(2,22);x.stroke();
-  x.strokeStyle='#4d5557';x.lineWidth=3.2;x.beginPath();x.moveTo(-10,-2);x.quadraticCurveTo(0,-7,11,-2);x.stroke();x.restore();
-
-  // dirt begins only once the head-first dive reaches the lawn
+  // Soil contact follows the hands/head entry; the trailing knees and feet remain visible until last.
   if(P.digging&&P.u>.60){
-    const q=Math.min(1,(P.u-.60)/.40);x.save();x.translate(32,58);x.rotate(-P.rot);
-    x.fillStyle='rgba(91,65,40,.85)';
-    for(let i=0;i<8;i++){const a=i*.9+gameTime*5,r=5+q*18;x.beginPath();x.arc(Math.cos(a)*r,-Math.abs(Math.sin(a))*r*.45,1.3+(i%3),0,Math.PI*2);x.fill();}
-    x.restore();
+    const q=Math.min(1,(P.u-.60)/.40);x.fillStyle='rgba(91,65,40,.88)';
+    for(let i=0;i<9;i++){const a=i*.83+gameTime*5,r=4+q*19;x.beginPath();x.arc(22+Math.cos(a)*r,58-Math.abs(Math.sin(a))*r*.48,1.2+(i%3),0,Math.PI*2);x.fill();}
   }
   x.restore();
 }
@@ -3130,6 +3245,17 @@ function drawMinerMound(x,z){
   // Soft disturbed-earth shadow: anchors the effect to the lawn.
   x.fillStyle='rgba(20,15,9,.24)';
   x.beginPath();x.ellipse(cx+2,ground+5,25,5.2,0,0,Math.PI*2);x.fill();
+
+  // During the 0.82 s emergence the same articulated miner rises through a moving
+  // soil mask: head, shoulders, waist, knees and feet become visible in sequence.
+  if(rising){
+    const ru=Math.max(0,Math.min(1,(z.digAge||0)/.82));
+    const rise=minerEase(ru),soilLine=ground+12*rise;
+    x.save();x.beginPath();x.rect(0,0,64,soilLine);x.clip();
+    x.translate(0,(1-rise)*45);
+    drawMinerZombie(x,{...z,digState:'emergingPose',risePose:ru,eatMode:null},0);
+    x.restore();
+  }
 
   // A short wake behind the moving mound. Individual clods lag instead of translating as one sprite.
   for(let i=0;i<7;i++){
@@ -3220,14 +3346,15 @@ function drawMinerMound(x,z){
     x.beginPath();x.moveTo(-3,-2);x.lineTo(2,-3);x.lineTo(4,1);x.lineTo(0,3);x.lineTo(-4,1);x.closePath();x.fill();x.stroke();x.restore();
   }
 
-  // Rising state gets a violent central eruption before the zombie reappears.
+  // The mound heaves and spits dirt around the continuously emerging body.
   if(rising){
-    const ru=Math.max(0,Math.min(1,(z.digAge||0)/.48));
+    const ru=Math.max(0,Math.min(1,(z.digAge||0)/.82));
+    const pulse=Math.sin(Math.min(1,ru/.72)*Math.PI);
     for(let i=0;i<10;i++){
       const ang=-Math.PI*.88+i*(Math.PI*.76/9);
-      const rr=(8+18*ru)*(1+(i%3)*.08);
-      const px=cx+Math.cos(ang)*rr,py=ground+Math.sin(ang)*rr-8*ru;
-      x.globalAlpha=1-ru*.7;x.fillStyle=i%2?'#815a38':'#5b4029';
+      const rr=(8+20*pulse)*(1+(i%3)*.08);
+      const px=cx+Math.cos(ang)*rr,py=ground+Math.sin(ang)*rr-10*pulse;
+      x.globalAlpha=.25+.75*(1-ru);x.fillStyle=i%2?'#815a38':'#5b4029';
       x.beginPath();x.arc(px,py,2.4+(i%3),0,Math.PI*2);x.fill();
     }
     x.globalAlpha=1;
