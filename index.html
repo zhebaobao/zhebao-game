@@ -42,11 +42,11 @@ h1{margin:0;font-size:25px;letter-spacing:1px;text-shadow:2px 2px 0 #0d120b}.sub
 .sunOrb canvas{width:100%;height:100%;pointer-events:none}.sunOrb:hover{transform:translate(-50%,-50%) scale(1.08)}
 .sunOrb:active{transform:translate(-50%,-50%) scale(.9)}
 .hp{display:none}
-.chalkHp{position:absolute;right:3px;top:14%;width:7px;height:70%;overflow:visible;pointer-events:none;z-index:1;filter:drop-shadow(2px 2px 1px rgba(0,0,0,.34))}
+.chalkHp{position:absolute;right:3px;top:14%;width:7px;height:70%;overflow:visible;pointer-events:none;z-index:22;filter:drop-shadow(2px 2px 1px rgba(0,0,0,.34))}
 .chalkHp:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#4f5555 0 30%,#3f4545 31% 72%,#2f3535 73% 100%);clip-path:polygon(0 4%,72% 0,100% 5%,100% 96%,72% 100%,0 96%);box-shadow:inset 1px 0 #737a79,inset -2px 0 #222727}
 .chalkHpFill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(90deg,#fff 0 30%,#eeeeea 31% 72%,#c5c6c1 73% 100%);clip-path:polygon(0 2%,72% 0,100% 3%,100% 97%,72% 100%,0 98%);box-shadow:inset 1px 0 rgba(255,255,255,.9),inset -2px 0 rgba(116,119,114,.32);z-index:2}
 .chalkHpFill:after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#fff;box-shadow:0 1px #b9bab5}
-.armorHp{position:absolute;right:3px;top:-8%;width:7px;height:20%;overflow:visible;pointer-events:none;z-index:2;filter:drop-shadow(2px 2px 1px rgba(0,0,0,.42))}
+.armorHp{position:absolute;right:3px;top:-8%;width:7px;height:20%;overflow:visible;pointer-events:none;z-index:23;filter:drop-shadow(2px 2px 1px rgba(0,0,0,.42))}
 .armorHp:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#161c20 0 28%,#303940 29% 64%,#101519 65% 100%);clip-path:polygon(0 5%,72% 0,100% 8%,100% 93%,68% 100%,0 95%);box-shadow:inset 1px 0 #66737a,inset -2px 0 #080b0d}
 .armorHpFill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(90deg,#20282d 0 28%,#4a555c 29% 62%,#1b2226 63% 100%);clip-path:polygon(0 4%,72% 0,100% 7%,100% 94%,70% 100%,0 96%);box-shadow:inset 1px 0 #829097,inset -2px 0 #0b0f11;z-index:2}
 .armorHpFill:after{content:"";position:absolute;left:1px;right:1px;top:1px;height:1px;background:#7d8b92;opacity:.8}
@@ -528,6 +528,12 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
 
 
 .entity.zombie.giantTransforming:after{content:"变异中…";position:absolute;left:50%;top:-10%;transform:translateX(-50%);font-size:9px;font-weight:900;color:#d7ff9c;text-shadow:1px 1px 2px #14200d;white-space:nowrap;animation:brainEatPulse .45s ease-in-out infinite alternate}
+.entity.zombie.giantTransforming:before{content:"";position:absolute;inset:-28%;z-index:0;border:3px solid rgba(202,255,119,.82);border-radius:50%;box-shadow:0 0 12px #d6ff84,0 0 28px rgba(121,255,80,.55),inset 0 0 18px rgba(216,255,139,.28);animation:giantMutationRing .62s ease-out infinite;pointer-events:none}
+.entity.zombie.giantTransforming .giantSprite{animation:giantMutationPulse .18s steps(2,end) infinite}
+.entity.zombie.giantUnit .chalkHp{right:-18%;top:2%;height:88%;width:8px}
+.entity.zombie.giantUnit .armorHp{right:-18%;top:-18%}
+@keyframes giantMutationRing{from{opacity:.92;transform:scale(.48)}to{opacity:0;transform:scale(1.18)}}
+@keyframes giantMutationPulse{0%{filter:brightness(1) saturate(1)}50%{filter:brightness(1.42) saturate(1.35)}100%{filter:brightness(.92) saturate(1.1)}}
 
 
 .entity.plant[style*="scale("]{will-change:transform,opacity}
@@ -1935,6 +1941,7 @@ function update(dt){
         z.coneMax=z.giantArmor==='bucket'?200:(z.giantArmor==='cone'?50:0);
         z.coneHp=z.giantArmor?Math.max(1,z.giantArmorCarryHp||0):0;
         z.gaitCadence=.38;z.smashCooldown=0;z.giantFromType=null;z.giantArmorCarryHp=0;
+        playSfx('explosion',1.15,'mutateImpact',180,z.x);
         playSfx('zombieSpawn',1.2,'mutateFinish',180,z.x);say('变异完成——中型巨人站起来了！');
       }
     }
@@ -2090,18 +2097,18 @@ function update(dt){
 
         }
       }else if(z.type==='miner'){
-        // Miner bites use a real pose phase. Preserve the old 33 DPS, but land each
-        // 0.7 s cycle's damage exactly when the jaw visibly clamps shut.
+        // Preserve the old 33 DPS, but deliver each 0.7 s cycle as one visible
+        // two-handed pickaxe impact instead of an unrelated bite tick.
         z.eating=true;
-        const biteCycle=.7,oldAttack=z.attack||0;
+        const strikeCycle=.7,oldAttack=z.attack||0;
         z.attack=oldAttack+dt*slowMul;
-        if(Math.floor(z.attack/biteCycle)!==Math.floor(oldAttack/biteCycle))z.minerBiteLanded=false;
-        const minerBitePhase=(z.attack%biteCycle)/biteCycle;
-        if(minerBitePhase>=.52&&!z.minerBiteLanded){
-          z.minerBiteLanded=true;
-          damagePlant(target,33*biteCycle);
+        if(Math.floor(z.attack/strikeCycle)!==Math.floor(oldAttack/strikeCycle))z.minerStrikeLanded=false;
+        const minerStrikePhase=(z.attack%strikeCycle)/strikeCycle;
+        if(minerStrikePhase>=.52&&!z.minerStrikeLanded){
+          z.minerStrikeLanded=true;
+          damagePlant(target,33*strikeCycle);
           bloodFx.push({id:nextId++,x:target.col+.52,y:target.row+.48,age:0,life:.35,mode:z.eatMode});
-          playSfx('bite',.9,'bite',85,z.x);
+          playSfx('fleshHit',1,'minerPick',85,z.x);
         }
       }else{
         z.eating=true;z.attack+=dt*slowMul;damagePlant(target,33*dt*slowMul); z.bloodTick=(z.bloodTick||0)+dt;
@@ -2109,7 +2116,7 @@ function update(dt){
         if(z.attack>=.7){playSfx('bite',.9,'bite',85,z.x);z.attack-=.7;}
       }
     }else{
-      z.eating=false;z.eatMode=null;z.attack=0;z.minerBiteLanded=false;
+      z.eating=false;z.eatMode=null;z.attack=0;z.minerStrikeLanded=false;
       if(z.hitStun<=0&&z.lungeTime<=0){
         if(z.type==='crawler'){
           z.crawlPhase=(z.crawlPhase+dt*slowMul*.18)%1;
@@ -3078,10 +3085,10 @@ function minerPose(z,bitePhase=0){
   const eating=!!z.eatMode&&!digging&&!rising;
   const u=digging?Math.max(0,Math.min(1,(z.digAge||0)/1.18)):0;
   const bp=eating?Math.max(0,Math.min(1,bitePhase)):0;
-  const biteIn=minerEase(bp/.28),biteOut=minerEase((bp-.68)/.32);
-  const biteHold=biteIn*(1-biteOut);
-  const biteImpact=Math.exp(-Math.pow((bp-.54)/.055,2));
-  const jawOpen=eating?minerEase((bp-.13)/.18)*(1-minerEase((bp-.42)/.10)):0;
+  const attackWind=eating?minerEase(bp/.28):0;
+  const attackDrop=eating?minerEase((bp-.28)/.24):0;
+  const attackRecover=eating?minerEase((bp-.62)/.38):0;
+  const toolImpact=eating?Math.exp(-Math.pow((bp-.54)/.05,2)):0;
   let rootX=0,rootY=0,crouch=0,torsoLean=0,shoulderRoll=0,headLag=0;
   let armReach=0,diveReach=0,launch=0,enter=0;
   const walking=!digging&&!rising&&!eating;
@@ -3092,13 +3099,15 @@ function minerPose(z,bitePhase=0){
     headLag=Math.sin(phase-.95)*.045;
   }
   if(eating){
-    // A discrete upper-body pose: brace, reach, bite, recoil, recover.
-    rootX=-2.4*biteHold+1.1*biteImpact;
-    crouch=1.8*biteHold;
-    torsoLean=-.29*biteHold+.085*biteImpact;
-    shoulderRoll=-2.2*biteHold;
-    headLag=-.13*biteHold+.12*biteImpact;
-    armReach=biteHold;
+    // Two-handed pickaxe attack: raise, drive the head into the plant, recoil, recover.
+    const active=attackWind*(1-attackRecover);
+    rootX=-3.2*attackDrop*(1-attackRecover)+1.2*toolImpact;
+    rootY=-2.0*attackWind*(1-attackDrop)+1.6*toolImpact;
+    crouch=2.8*active;
+    torsoLean=.13*attackWind*(1-attackDrop)-.38*attackDrop*(1-attackRecover)+.10*toolImpact;
+    shoulderRoll=-3.6*active;
+    headLag=-.08*active+.13*toolImpact;
+    armReach=attackDrop*(1-attackRecover);
   }
   if(digging){
     const bend=minerEase(u/.27);
@@ -3122,7 +3131,7 @@ function minerPose(z,bitePhase=0){
   }
   const gazeX=eating?-.78:(digging?(-.38-.28*diveReach):Math.sin(phase-.85)*.22);
   const gazeY=eating?.46:(digging?.60:.28+Math.sin(phase*.5)*.08);
-  return {phase,u,digging,rising,eating,rootX,rootY,crouch,torsoLean,shoulderRoll,headLag,armReach,diveReach,launch,enter,jawOpen,biteImpact,gazeX,gazeY};
+  return {phase,u,digging,rising,eating,rootX,rootY,crouch,torsoLean,shoulderRoll,headLag,armReach,diveReach,launch,enter,attackWind,attackDrop,attackRecover,toolImpact,gazeX,gazeY};
 }
 function drawMinerZombie(x,z,bitePhase=0){
   const P=minerPose(z,bitePhase),step=Math.sin(P.phase);
@@ -3158,14 +3167,15 @@ function drawMinerZombie(x,z,bitePhase=0){
     kneeL={x:pelvis.x-5-brace*2,y:pelvis.y+8};footL={x:pelvis.x-10-brace*2,y:pelvis.y+15};
     kneeR={x:pelvis.x+6,y:pelvis.y+8};footR={x:pelvis.x+10,y:pelvis.y+15};
   }else{
-    kneeL={x:pelvis.x-4+step*2.2,y:pelvis.y+8-liftL*1.3};footL={x:pelvis.x-8+step*4.4,y:pelvis.y+15-liftL*2.4};
-    kneeR={x:pelvis.x+5-step*2.2,y:pelvis.y+8-liftR*1.3};footR={x:pelvis.x+9-step*4.4,y:pelvis.y+15-liftR*2.4};
+    // A narrow, forward-facing gait: one foot plants while the other lifts and passes it.
+    kneeL={x:pelvis.x-2.2-step*2.8,y:pelvis.y+8-liftL*2.2};footL={x:pelvis.x-2.5-step*6.2,y:pelvis.y+15-liftL*4.4};
+    kneeR={x:pelvis.x+2.2+step*2.8,y:pelvis.y+8-liftR*2.2};footR={x:pelvis.x+2.5+step*6.2,y:pelvis.y+15-liftR*4.4};
   }
   x.lineCap='round';x.lineJoin='round';x.strokeStyle='#17282d';x.lineWidth=7;
   x.beginPath();x.moveTo(pelvis.x-3,pelvis.y);x.lineTo(kneeL.x,kneeL.y);x.lineTo(footL.x+2,footL.y-1);
   x.moveTo(pelvis.x+3,pelvis.y);x.lineTo(kneeR.x,kneeR.y);x.lineTo(footR.x-2,footR.y-1);x.stroke();
   x.strokeStyle='#241d19';x.lineWidth=4.6;
-  x.beginPath();x.moveTo(footL.x-4,footL.y);x.lineTo(footL.x+4,footL.y);x.moveTo(footR.x-4,footR.y);x.lineTo(footR.x+4,footR.y);x.stroke();
+  x.beginPath();x.moveTo(footL.x-5,footL.y);x.lineTo(footL.x+3,footL.y);x.moveTo(footR.x-5,footR.y);x.lineTo(footR.x+3,footR.y);x.stroke();
 
   // Torso is built on the pelvis-to-shoulder axis, so hips, chest and shoulders bend continuously.
   const sl={x:shoulder.x-sideX*8.6,y:shoulder.y-sideY*8.6};
@@ -3194,10 +3204,12 @@ function drawMinerZombie(x,z,bitePhase=0){
     frontElbow={x:(frontShoulder.x+frontHand.x)*.5-3*P.diveReach,y:(frontShoulder.y+frontHand.y)*.5+3};
     rearElbow={x:(rearShoulder.x+rearHand.x)*.5+1,y:(rearShoulder.y+rearHand.y)*.5+4};
   }else if(P.eating){
-    frontHand={x:frontShoulder.x-10-10*P.armReach,y:frontShoulder.y+9+1.5*P.armReach};
-    rearHand={x:rearShoulder.x+1,y:rearShoulder.y+13};
-    frontElbow={x:frontShoulder.x-7-4*P.armReach,y:frontShoulder.y+5};
-    rearElbow={x:rearShoulder.x+5,y:rearShoulder.y+6};
+    const wind=P.attackWind*(1-P.attackDrop)*(1-P.attackRecover);
+    const strike=P.attackDrop*(1-P.attackRecover);
+    frontHand={x:frontShoulder.x-4+wind*6-strike*13,y:frontShoulder.y+12-wind*21-strike*2};
+    rearHand={x:rearShoulder.x+4-wind*2-strike*14,y:rearShoulder.y+13-wind*18-strike*1};
+    frontElbow={x:(frontShoulder.x+frontHand.x)*.5-3*strike,y:(frontShoulder.y+frontHand.y)*.5};
+    rearElbow={x:(rearShoulder.x+rearHand.x)*.5+2*wind,y:(rearShoulder.y+rearHand.y)*.5};
   }else{
     const swing=Math.sin(P.phase)*4;
     frontHand={x:frontShoulder.x-4+swing,y:frontShoulder.y+13};
@@ -3206,9 +3218,9 @@ function drawMinerZombie(x,z,bitePhase=0){
     rearElbow={x:rearShoulder.x+6-swing*.45,y:rearShoulder.y+6};
   }
 
-  // Pickaxe is anchored to the rear hand while biting, and to the two-hand diving grip underground.
-  const toolHand=P.digging?{x:(frontHand.x+rearHand.x)*.5,y:(frontHand.y+rearHand.y)*.5}:rearHand;
-  const toolAngle=P.digging?(-1.15+.20*P.diveReach+.16*P.enter):(-.58+step*.14);
+  // Both hands drive the pickaxe during the attack; digging keeps the same connected grip.
+  const toolHand=P.eating?frontHand:(P.digging?{x:(frontHand.x+rearHand.x)*.5,y:(frontHand.y+rearHand.y)*.5}:rearHand);
+  const toolAngle=P.eating?(-1.28+P.attackDrop*1.92-P.attackRecover*.62):(P.digging?(-1.15+.20*P.diveReach+.16*P.enter):(-.58+step*.14));
   x.save();x.translate(toolHand.x,toolHand.y);x.rotate(toolAngle);
   x.strokeStyle='#704b2b';x.lineWidth=3;x.beginPath();x.moveTo(-1,-2);x.lineTo(2,23);x.stroke();
   x.strokeStyle='#4d5557';x.lineWidth=3.2;x.beginPath();x.moveTo(-10,-2);x.quadraticCurveTo(0,-7,11,-2);x.stroke();x.restore();
@@ -3220,9 +3232,9 @@ function drawMinerZombie(x,z,bitePhase=0){
   x.beginPath();x.moveTo(frontShoulder.x,frontShoulder.y);x.lineTo(frontElbow.x,frontElbow.y);x.lineTo(frontHand.x,frontHand.y);
   x.moveTo(rearShoulder.x,rearShoulder.y);x.lineTo(rearElbow.x,rearElbow.y);x.lineTo(rearHand.x,rearHand.y);x.stroke();
 
-  // Head recoil is separate from the chest, which makes the bite impact readable even with the mouth hidden.
-  const headKick=P.biteImpact*2.4;
-  x.save();x.translate(head.x+headKick,head.y-P.biteImpact*.7);x.rotate(P.torsoLean*.52+P.headLag);
+  // The pickaxe impact travels back through the head and chest.
+  const headKick=P.toolImpact*2.4;
+  x.save();x.translate(head.x+headKick,head.y-P.toolImpact*.7);x.rotate(P.torsoLean*.52+P.headLag);
   x.fillStyle='#66725f';x.strokeStyle='#20261f';x.lineWidth=1.4;
   x.beginPath();x.moveTo(-7,-8);x.bezierCurveTo(1,-11,9,-7,8,1);x.bezierCurveTo(8,8,4,11,-2,12);x.bezierCurveTo(-9,11,-12,5,-10,-2);x.closePath();x.fill();x.stroke();
 
@@ -3239,15 +3251,12 @@ function drawMinerZombie(x,z,bitePhase=0){
   x.strokeStyle='#30382e';x.lineWidth=1.15;x.beginPath();x.moveTo(-6.4,-3.0);x.quadraticCurveTo(-3.8,-4.2,-1.5,-3.1);
   x.moveTo(1.0,-3.7);x.quadraticCurveTo(3.0,-4.8,5.2,-3.4);x.stroke();
 
-  // Jaw opens wide during the reach, clamps at phase .52, then the head/chest recoil.
-  x.fillStyle='#2b2520';x.beginPath();x.moveTo(-4.8,6.1);x.quadraticCurveTo(.2,4.8,5.2,6.3);
-  x.lineTo(4.0,8.2);x.quadraticCurveTo(0,9.1,-4.2,8.0);x.closePath();x.fill();
-  x.save();x.translate(0,P.jawOpen*4.8);
-  x.fillStyle='#53604f';x.strokeStyle='#20261f';x.lineWidth=1;
-  x.beginPath();x.moveTo(-5,7.1);x.quadraticCurveTo(0,10.7,5,7.2);x.lineTo(3.7,10.8);x.quadraticCurveTo(0,12,-3.8,10.6);x.closePath();x.fill();x.stroke();
-  x.fillStyle='#ded3b0';x.fillRect(-2.9,7.1,1.7,2.6);x.fillRect(1.1,7.0,1.8,2.3);x.restore();
+  // Closed, grim mouth; the pickaxe carries the attack instead of a bite.
+  x.fillStyle='#2b2520';x.beginPath();x.moveTo(-4.8,6.4);x.quadraticCurveTo(.2,5.1,5.1,6.5);
+  x.quadraticCurveTo(.4,9.0,-4.5,7.8);x.closePath();x.fill();
+  x.strokeStyle='#171a16';x.lineWidth=1;x.beginPath();x.moveTo(-3.8,7.0);x.quadraticCurveTo(.2,8.0,4.0,7.0);x.stroke();
 
-  // Helmet remains attached to the skull through every lean, bite and dive.
+  // Helmet remains attached to the skull through every lean, strike and dive.
   x.fillStyle='#c69a2c';x.strokeStyle='#45371d';x.beginPath();x.arc(0,-8,10,Math.PI,Math.PI*2);x.lineTo(11,-7);x.lineTo(-11,-7);x.closePath();x.fill();x.stroke();
   x.fillStyle='#e6b83b';x.fillRect(-12,-8,24,2.5);
   x.fillStyle='#f3e8aa';x.strokeStyle='#5a4b28';x.beginPath();x.arc(-7,-9,3.1,0,Math.PI*2);x.fill();x.stroke();
@@ -3651,9 +3660,21 @@ function drawGiantMutation(x,z){
   const grow=smooth(Math.max(0,Math.min(1,(u-.18)/.50)));
   const rise=smooth(Math.max(0,Math.min(1,(u-.68)/.32)));
   const twitch=Math.sin(u*Math.PI*18)*(1-rise)*(grow*.9);
+  const shake=(1-rise)*grow;
   x.save();
+  // Repeated shock rings, torn turf and dust make the mutation read at game scale.
+  x.globalAlpha=(.22+.38*grow)*(1-rise*.55);x.strokeStyle='#caff75';x.lineWidth=2.2;
+  for(let i=0;i<2;i++){
+    const wave=(u*3.2+i*.5)%1;
+    x.beginPath();x.ellipse(32,46,8+wave*25,4+wave*10,0,0,Math.PI*2);x.stroke();
+  }
+  x.globalAlpha=.75*grow;x.strokeStyle='#33281c';x.lineWidth=2;
+  for(let i=0;i<5;i++){const a=-.52+i*.26;x.beginPath();x.moveTo(32,55);x.lineTo(32+Math.cos(a)*22*grow,55+Math.sin(a)*8*grow);x.stroke();}
+  x.fillStyle='#70563a';
+  for(let i=0;i<7;i++){const a=i*.9+u*9,r=8+grow*18;x.globalAlpha=.65*grow*(1-rise);x.beginPath();x.arc(32+Math.cos(a)*r,49-Math.abs(Math.sin(a))*12*grow,1.2+(i%3)*.45,0,Math.PI*2);x.fill();}
+  x.globalAlpha=1;
   // Keep the whole metamorphosis comfortably inside the 64px sprite.
-  x.translate(32,48);
+  x.translate(32+Math.sin(u*Math.PI*34)*1.5*shake,48+Math.cos(u*Math.PI*28)*.8*shake);
   x.rotate(-fall*1.18*(1-rise));
   x.scale(1+grow*.16,1+grow*.12);
   x.translate(-32,-48);
@@ -3675,7 +3696,7 @@ function drawGiantMutation(x,z){
   // Final third: body pushes off the turf and straightens into the giant silhouette.
   if(rise>0){
     x.globalAlpha=rise;
-    x.save();x.translate(0,(1-rise)*8);x.scale(.78+rise*.18,.78+rise*.18);
+    x.save();x.translate(0,(1-rise)*11);x.scale(.68+rise*.32,.68+rise*.32);
     drawMutantGiant(x,{...z,type:'giant',walkTick:0,smashTime:0,brainDropId:null,brainEat:0});
     x.restore();x.globalAlpha=1;
   }
@@ -4551,6 +4572,7 @@ function render(){
       const biteBodyLean=z.eating?(bitePhase<.34?bitePhase/.34*.025:bitePhase<.62?.025:(1-(bitePhase-.62)/.38)*.025):0;
       const poseX=z.eatMode==='front'?(-0.055-biteBodyLean):0;
       if((z.type==='normal'||z.type==='cone'||z.type==='bucket')&&z.hitStun>0)d.classList.add('normalHit');
+      if(z.type==='giant'||(z.giantTransform||0)>0)d.classList.add('giantUnit');
       if((z.giantTransform||0)>0)d.classList.add('giantTransforming');else if(z.brainDropId&&z.type==='giant')d.classList.add('giantBrainEating');
       const raidU=z.raidDrop?Math.max(0,Math.min(1,z.raidDrop.age/z.raidDrop.dur)):1;const raidY=z.raidDrop?(z.raidDrop.startY+(z.row+.5-z.raidDrop.startY)*raidU-.22*Math.sin(raidU*Math.PI)):(z.row+.5+wobbleY);d.style.left=pctX(z.x+poseX);d.style.top=pctY(raidY);
       if((z.giantTransform||0)>0)d.appendChild(makeLargeZombieCanvas(c=>drawGiantMutation(c,z)));
