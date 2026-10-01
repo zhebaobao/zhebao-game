@@ -1112,7 +1112,7 @@ const LEVELS={
   7:{total:26,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,initialSun:175,firstDelay:7.5,spawnMin:6.0,spawnMax:8.2},
   8:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,initialSun:200,firstDelay:7.0,spawnMin:5.8,spawnMax:7.9},
   9:{total:32,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,miners:true,initialSun:225,firstDelay:7.0,spawnMin:5.4,spawnMax:7.4},
-  10:{total:22,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:8.0,spawnMin:7.5,spawnMax:10.5}
+  10:{total:25,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:8.0,spawnMin:7.5,spawnMax:10.5}
 };
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
@@ -1366,7 +1366,7 @@ function updateWaveUI(){
   if(!waveFill)return;
   const p=waveProgress();
   const stage=currentLevel===8?Math.min(3,Math.floor(p*3)+1):(currentLevel===10?(level10Boss?4:Math.min(3,Math.floor(p*4)+1)):(currentLevel===7&&level7Event?level7Event.wave:Math.min(4,Math.floor(p*4)+1)));
-  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='intermission'?`工头出击 · ${Math.max(0,Math.ceil(20-(level10Boss.intermissionAge||0)))}秒`:(level10Boss.phase==='release'?'每批装卸 4 只':(level10Boss.phase==='finalStand'?'最终决战':'战车突袭'))):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
+  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='intermission'?`工头出击 · ${Math.max(0,Math.ceil(20-(level10Boss.intermissionAge||0)))}秒`:(level10Boss.phase==='release'?'每批装卸 5 只':(level10Boss.phase==='finalStand'?'最终决战':'战车突袭'))):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
   const surge=(finalRaidBusy()||waveBurstRemaining>0)&&wavePulseTimer>0;
   const key=[currentLevel,p,stage,state,surge].join('|');
   if(key===lastWaveUIKey)return;
@@ -1609,19 +1609,29 @@ function updateLevel10(dt){
   }
   const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);
   if(!e.bossSpawned){updateBossPresentation();return;}
-  if(!boss){e.phase='defeated';e.emitted=12;spawned=Math.max(spawned,LEVELS[10].total);updateBossPresentation();return;}
+  if(!boss){e.phase='defeated';e.emitted=15;spawned=Math.max(spawned,LEVELS[10].total);updateBossPresentation();return;}
   e.hudAge+=dt;boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);boss.throwTime=Math.max(0,(boss.throwTime||0)-dt);boss.bossHitFx=Math.max(0,(boss.bossHitFx||0)-dt);
+  if(!e.oneThirdRush&&boss.hp>0&&boss.hp<=boss.maxHp/3){
+    e.oneThirdRush=true;wavePulseTimer=1.8;
+    const dropRows=[1,2,3,1,2,3];
+    for(let i=0;i<6;i++){
+      const row=dropRows[i],x=Math.max(4.65,boss.x-1.15-(i>=3?.72:0)-Math.random()*.34);
+      const imp=makeZombie('imp',row,x);imp.raidDrop={age:0,dur:1.22,startY:-.85};imp.airY=0;imp.hitStun=0;imp.hurt=0;zombies.push(imp);
+    }
+    playSfx('wave',1.2,'bossOneThirdRush',500);say('Boss 只剩三分之一生命——正前方三行降下 6 只小鬼僵尸！');
+    battleRoot.animate([{filter:'brightness(1)'},{filter:'brightness(1.55) saturate(1.4)'},{filter:'brightness(1)'}],{duration:420,iterations:1});
+  }
   updateBossPresentation();
   if(e.phase==='bossReveal'&&e.hudAge<2.45)return;
   if(e.phase==='bossReveal'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
-  if(e.phase==='release'&&e.emitted<12){
+  if(e.phase==='release'&&e.emitted<15){
     e.releaseClock-=dt;
     if(e.releaseClock<=0){
       const types=['crawler','normal','cone','crawler','brain','normal'];
       const type=types[e.emitted%types.length],truckRows=[1,2,3],row=truckRows[e.emitted%truckRows.length];
       const z=makeZombie(type,row,10.35);z.bossSlide=makeCargoSlide(10.35,5.05);z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;e.groupReleased++;spawned++;e.releaseClock=1.15;
       playSfx('metalHit',.6,'bossDrop',100,8.8);
-      if(e.groupReleased>=4||e.emitted>=12){e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;e.jumpLanded=false;e.jumpReturned=false;say('工头从车厢跳下，走到战车前方准备投掷扳手！');}
+      if(e.groupReleased>=5||e.emitted>=15){e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;e.jumpLanded=false;e.jumpReturned=false;say('工头从车厢跳下，走到战车前方准备投掷扳手！');}
     }
   }
   if(e.phase==='intermission'){
@@ -1652,7 +1662,7 @@ function updateLevel10(dt){
     if(e.attackStep===2&&e.intermissionAge>=backStart){e.target=null;e.attackStep=3;}
     if(e.intermissionAge>=20){
       e.groupReleased=0;e.releaseClock=0;e.intermissionAge=0;e.attackStep=0;
-      if(e.emitted>=12){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.bossAirY=0;boss.bossJumpTilt=0;boss.teleportFx=.65;say('装卸结束——工头再次跳下车，留在草坪上进行最终决战！');}
+      if(e.emitted>=15){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.bossAirY=0;boss.bossJumpTilt=0;boss.teleportFx=.65;say('装卸结束——工头再次跳下车，留在草坪上进行最终决战！');}
       else e.phase='release';
     }
   }
@@ -4592,8 +4602,12 @@ function getWorkerBossFrame(frame){
   for(let y=0;y<scan.height;y++)for(let x=0;x<scan.width;x++)if(data[(y*scan.width+x)*4+3]>10){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
   if(maxX<minX)return null;
   const bw=maxX-minX+1,bh=maxY-minY+1,scale=Math.min(142/bw,174/bh),dw=Math.round(bw*scale),dh=Math.round(bh*scale);
-  const out=document.createElement('canvas');out.width=150;out.height=180;const g=out.getContext('2d');g.imageSmoothingEnabled=false;
+  const out=document.createElement('canvas');out.width=150;out.height=180;const g=out.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
   g.drawImage(workerBossSheet,frame*sw+minX,minY,bw,bh,Math.round((150-dw)/2),178-dh,dw,dh);
+  // Remove stray near-transparent edge pixels, but preserve a soft one-pixel antialiased contour.
+  const cleaned=g.getImageData(0,0,150,180),px=cleaned.data;
+  for(let i=3;i<px.length;i+=4){if(px[i]<14)px[i]=0;else if(px[i]<72)px[i]=Math.min(255,Math.round(px[i]*1.22));}
+  g.putImageData(cleaned,0,0);
   workerBossFrameCache[frame]=out;return out;
 }
 function drawThrownWrench(c,w){
@@ -4663,7 +4677,7 @@ function drawWorkBoss(c,z){
   c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5+bob);
   const wind=throwing&&q<.36?q/.36:0,follow=throwing&&q>=.62?(q-.62)/.38:0;
   c.rotate(((-wind*3.5+follow*2.2)+(z.bossJumpTilt||0))*Math.PI/180);c.translate(-w*.5,-h*.5);
-  c.imageSmoothingEnabled=false;c.drawImage(sprite,0,0,w,h);
+  c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.shadowColor='rgba(7,10,8,.72)';c.shadowBlur=1.35;c.shadowOffsetY=1;c.drawImage(sprite,0,0,w,h);c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetY=0;
   if((z.bossHitFx||0)>0){const a=Math.min(.68,z.bossHitFx/.24*.68);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(0,0,w,h);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
   c.restore();
 }
