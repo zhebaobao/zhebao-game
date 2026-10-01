@@ -4601,11 +4601,11 @@ function getWorkerBossFrame(frame){
   const data=sg.getImageData(0,0,scan.width,scan.height).data;let minX=scan.width,minY=scan.height,maxX=-1,maxY=-1;
   for(let y=0;y<scan.height;y++)for(let x=0;x<scan.width;x++)if(data[(y*scan.width+x)*4+3]>10){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
   if(maxX<minX)return null;
-  const bw=maxX-minX+1,bh=maxY-minY+1,scale=Math.min(142/bw,174/bh),dw=Math.round(bw*scale),dh=Math.round(bh*scale);
-  const out=document.createElement('canvas');out.width=150;out.height=180;const g=out.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
-  g.drawImage(workerBossSheet,frame*sw+minX,minY,bw,bh,Math.round((150-dw)/2),178-dh,dw,dh);
+  const bw=maxX-minX+1,bh=maxY-minY+1,scale=Math.min(284/bw,348/bh),dw=Math.round(bw*scale),dh=Math.round(bh*scale);
+  const out=document.createElement('canvas');out.width=300;out.height=360;const g=out.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  g.drawImage(workerBossSheet,frame*sw+minX,minY,bw,bh,Math.round((300-dw)/2),356-dh,dw,dh);
   // Remove stray near-transparent edge pixels, but preserve a soft one-pixel antialiased contour.
-  const cleaned=g.getImageData(0,0,150,180),px=cleaned.data;
+  const cleaned=g.getImageData(0,0,300,360),px=cleaned.data;
   for(let i=3;i<px.length;i+=4){if(px[i]<14)px[i]=0;else if(px[i]<72)px[i]=Math.min(255,Math.round(px[i]*1.22));}
   g.putImageData(cleaned,0,0);
   workerBossFrameCache[frame]=out;return out;
@@ -5025,7 +5025,7 @@ function render(){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
     if(z.type==='workboss'){
       d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(z.row+.5+(z.bossAirY||0));d.style.width=(1.38/COLS*100)+'%';d.style.height=(100/ROWS*1.72)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
-      const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc.getContext('2d'),z);d.appendChild(bc);
+      const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';bc.style.imageRendering='auto';drawWorkBoss(bc.getContext('2d'),z);d.appendChild(bc);
       frameUnits.appendChild(d);continue;
     }
     const bitePhase=z.eating?((z.attack%0.7)/0.7):0;
