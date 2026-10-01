@@ -55,7 +55,6 @@ h1{margin:0;font-size:25px;letter-spacing:1px;text-shadow:2px 2px 0 #0d120b}.sub
 
 .chalkBreak{position:absolute;width:7px;pointer-events:none;z-index:4;transform-origin:center center;clip-path:polygon(0 3%,70% 0,100% 4%,100% 96%,72% 100%,0 97%);box-shadow:inset 2px 0 rgba(255,255,255,.75),inset -2px 0 rgba(95,98,94,.24);filter:drop-shadow(2px 2px 1px rgba(0,0,0,.3))}
 .bite canvas{animation:none}.hurt{animation:flash .12s steps(1,end) 2}
-.toastSun{position:absolute;z-index:20;font-size:18px;color:#fff09a;pointer-events:none;text-shadow:2px 2px 0 #6e4b00;animation:floatUp .65s steps(6,end) forwards}
 .controls{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:7px}.btn.speed.on{background:#7f8f43;outline:3px solid #d6ef73;outline-offset:-6px}.btn{min-height:44px;padding:0 18px;border:3px solid #10170d;background:#39492d;color:#fff5cf;font-weight:700;box-shadow:inset -3px -3px 0 #26321f,inset 3px 3px 0 #566d42;cursor:pointer}.btn.primary{background:#57773a}.btn:disabled{opacity:.55;cursor:default}
 .status{text-align:center;font-weight:700;margin-top:6px;min-height:20px}.note{text-align:center;color:#bfcdb0;font-size:11px;margin-top:6px;line-height:1.6;letter-spacing:.4px}
 @keyframes bite{to{transform:translateX(-2px) rotate(-3deg)}}
@@ -63,7 +62,7 @@ h1{margin:0;font-size:25px;letter-spacing:1px;text-shadow:2px 2px 0 #0d120b}.sub
 @keyframes floatUp{to{transform:translateY(-28px);opacity:0}}
 @keyframes flash{50%{filter:brightness(1.9)}}
 @media(max-width:620px){h1{font-size:19px}.wrap{padding:6px}.tools{gap:5px}.tool{width:72px;height:86px}.tool .cardArt{width:48px;height:48px}.tool.shovelCard{width:60px}.board{width:100%;min-width:500px}}
-@media(prefers-reduced-motion:reduce){.bite canvas,.sunOrb,.toastSun{animation:none}}
+@media(prefers-reduced-motion:reduce){.bite canvas,.sunOrb{animation:none}}
 .mobilePerf .fanWind{mix-blend-mode:normal;opacity:.78}.mobilePerf .zombie .sprite{filter:none}.mobilePerf .chainsawUnit canvas{filter:none}.mobilePerf .sunOrb{filter:none}
 
 .cell.laneLocked{background:#39532f!important;cursor:default;filter:saturate(.55) brightness(.72)}
@@ -1081,7 +1080,7 @@ const LEVELS={
   7:{total:26,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,initialSun:175,firstDelay:7.5,spawnMin:6.0,spawnMax:8.2},
   8:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,initialSun:200,firstDelay:7.0,spawnMin:5.8,spawnMax:7.9},
   9:{total:32,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,miners:true,initialSun:225,firstDelay:7.0,spawnMin:5.4,spawnMax:7.4},
-  10:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:4.5,spawnMin:4.8,spawnMax:6.5}
+  10:{total:22,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:8.0,spawnMin:7.5,spawnMax:10.5}
 };
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,magnetUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
@@ -1316,7 +1315,7 @@ function waveProgress(){
   // Level 10 has three paced ground waves followed by the truck's 18 releases.
   // Keep the progress meter tied to those two phases instead of jumping to the
   // final flag as soon as the boss starts emitting.
-  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,.75+released/18*.25):Math.min(.75,spawned/Math.max(1,level10IntroTarget)*.75);}
+  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,.75+released/12*.25):Math.min(.75,spawned/Math.max(1,level10IntroTarget)*.75);}
   const cfg=LEVELS[currentLevel];return cfg.total?Math.min(1,spawned/cfg.total):0;
 }
 function waveStage(){if(currentLevel===7&&level7Event)return level7Event.wave-1;if(currentLevel===10)return level10Boss?3:Math.min(2,Math.floor(waveProgress()*4));return Math.min(3,Math.floor(waveProgress()*4));}
@@ -1326,7 +1325,7 @@ function updateWaveUI(){
   if(!waveFill)return;
   const p=waveProgress();
   const stage=currentLevel===8?Math.min(3,Math.floor(p*3)+1):(currentLevel===10?(level10Boss?4:Math.min(3,Math.floor(p*4)+1)):(currentLevel===7&&level7Event?level7Event.wave:Math.min(4,Math.floor(p*4)+1)));
-  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='attack'?'Boss 出击':'战车突袭'):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
+  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='intermission'?`工头出击 · ${Math.max(0,Math.ceil(20-(level10Boss.intermissionAge||0)))}秒`:(level10Boss.phase==='release'?'每批装卸 4 只':(level10Boss.phase==='finalStand'?'最终决战':'战车突袭'))):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
   const surge=(finalRaidBusy()||waveBurstRemaining>0)&&wavePulseTimer>0;
   const key=[currentLevel,p,stage,state,surge].join('|');
   if(key===lastWaveUIKey)return;
@@ -1484,8 +1483,8 @@ function armLevel9MinerSpawns(){
   }
 }
 function startLevel10Boss(){
-  level10Boss={age:0,emitted:0,releaseClock:0,phase:'entrance',attackStep:0,attackClock:0,target:null,truckOpen:0};
-  const boss=makeZombie('workboss',2,8.35);boss.hp=1400;boss.maxHp=1400;boss.bossUnit=true;zombies.push(boss);
+  level10Boss={age:0,emitted:0,groupReleased:0,releaseClock:0,phase:'entrance',intermissionAge:0,attackStep:0,target:null,lastTargetId:null,truckOpen:0};
+  const boss=makeZombie('workboss',2,8.65);boss.hp=1400;boss.maxHp=1400;boss.bossUnit=true;boss.teleportFx=0;boss.smashTime=0;zombies.push(boss);
   say('战车驶入——装卸板正在打开！');playSfx('metalBuild',1.1,'bossTruck',300,8.8);
 }
 function updateLevel10(dt){
@@ -1495,29 +1494,38 @@ function updateLevel10(dt){
   if(!level10Boss){if(spawned>=level10IntroTarget)startLevel10Boss();return;}
   const e=level10Boss,wasBossMusic=e.musicSwitched;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-1.0)/1.5));
   if(!wasBossMusic&&e.age>=2.6){e.musicSwitched=true;playBossBgm();say('战车货梯完全打开——Boss 战开始！');}
-  const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);if(!boss)return;
+  const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);
+  if(!boss){e.phase='defeated';e.emitted=12;spawned=Math.max(spawned,LEVELS[10].total);return;}
+  boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);
   if(e.age<3.0){e.phase='entrance';return;}
-  if(e.emitted<18&&e.phase==='entrance'){
+  if(e.phase==='entrance'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
+  if(e.phase==='release'&&e.emitted<12){
     e.releaseClock-=dt;
     if(e.releaseClock<=0){
       const types=['crawler','normal','cone','crawler','brain','normal'];
       const type=types[e.emitted%types.length],truckRows=[1,2,3],row=truckRows[e.emitted%truckRows.length];
-      const z=makeZombie(type,row,10.35);z.bossSlide={age:0,dur:.46,start:10.35,end:5.05};z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;spawned++;e.releaseClock=.72;
+      const z=makeZombie(type,row,10.35);z.bossSlide={age:0,dur:.58,start:10.35,end:5.05};z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;e.groupReleased++;spawned++;e.releaseClock=1.15;
       playSfx('metalHit',.6,'bossDrop',100,8.8);
-      if(e.emitted%6===0){e.phase='attack';e.attackStep=0;e.attackClock=0;e.target=null;}
+      if(e.groupReleased>=4||e.emitted>=12){e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;say('工头离开车厢——20 秒后才会释放下一批僵尸！');}
     }
   }
-  if(e.phase==='attack'){
-    e.attackClock+=dt;
-    const targetPlants=plants.filter(p=>p.hp>0&&p.type!=='crossfan');
-    if(e.attackStep<2){
-      if(!e.target||e.target.hp<=0)e.target=targetPlants[Math.floor(Math.random()*targetPlants.length)]||null;
-      if(e.target){const desired=Math.max(4.6,Math.min(8.0,e.target.col+.9));boss.x+=Math.sign(desired-boss.x)*Math.min(Math.abs(desired-boss.x),.34*dt);}
-      if(e.attackClock>=1.25){if(e.target&&e.target.hp>0){damagePlant(e.target,e.target.hp+1);e.target.bumpTime=.55;playSfx('metalHit',1,'bossWrench',100,e.target.col+.5);}e.attackStep++;e.attackClock=0;e.target=null;}
-    }else if(e.attackClock>=5){e.phase='return';e.attackClock=0;}
-  }else if(e.phase==='return'){
-    boss.x+=Math.sign(8.35-boss.x)*Math.min(Math.abs(8.35-boss.x),.42*dt);
-    if(Math.abs(boss.x-8.35)<.08){boss.x=8.35;e.phase=e.emitted>=18?'hold':'entrance';e.attackClock=0;}
+  if(e.phase==='intermission'){
+    e.intermissionAge+=dt;
+    const strike=()=>{
+      const candidates=plants.filter(p=>p.hp>0&&p.type!=='crossfan'&&p.id!==e.lastTargetId);
+      const fallback=plants.filter(p=>p.hp>0&&p.type!=='crossfan');
+      const pool=candidates.length?candidates:fallback,target=pool[Math.floor(Math.random()*pool.length)]||null;
+      e.target=target;
+      if(target){boss.row=target.row;boss.x=Math.min(8.35,target.col+1.12);boss.teleportFx=.55;boss.smashTime=.78;e.lastTargetId=target.id;damagePlant(target,target.hp+1);target.bumpTime=.55;playSfx('metalHit',1.1,'bossWrench',100,target.col+.5);say('工头闪到植物旁，用扳手一击砸毁目标！');}
+    };
+    if(e.attackStep===0&&e.intermissionAge>=.38){strike();e.attackStep=1;}
+    if(e.attackStep===1&&e.intermissionAge>=9.15){strike();e.attackStep=2;}
+    if(e.attackStep===2&&e.intermissionAge>=17.35){boss.row=2;boss.x=8.65;boss.teleportFx=.65;e.target=null;e.attackStep=3;say('工头闪回车厢，下一批僵尸即将装卸。');}
+    if(e.intermissionAge>=20){
+      e.groupReleased=0;e.releaseClock=0;e.intermissionAge=0;e.attackStep=0;
+      if(e.emitted>=12){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.teleportFx=.65;say('装卸结束——工头留在草坪上，集中火力击败他！');}
+      else e.phase='release';
+    }
   }
 }
 function pickZombieType(){
@@ -1651,7 +1659,7 @@ function collectSun(id,el){
   suns=suns.filter(x=>x!==s);
   if(el){el.disabled=true;el.style.pointerEvents='none';el.style.opacity='0';}
 
-  const finishCollect=()=>{sun+=s.value;playSfx('sunCollect',.8,'sunCollect',90,s.x);updateHUD();showSunText(.25,.15,s.value)};
+  const finishCollect=()=>{sun+=s.value;playSfx('sunCollect',.8,'sunCollect',90,s.x);updateHUD()};
   if(startRect){
     const fly=document.createElement('div');
     fly.className='sunFlyUI';fly.style.position='fixed';fly.style.left=startRect.left+'px';fly.style.top=startRect.top+'px';fly.style.width=startRect.width+'px';fly.style.height=startRect.height+'px';fly.style.zIndex='200';fly.style.pointerEvents='none';
@@ -1664,10 +1672,6 @@ function collectSun(id,el){
   }else{
     finishCollect();
   }
-}
-function showSunText(x,y,val){
-  const d=document.createElement('div');d.className='toastSun';d.textContent='+'+val;
-  d.style.left=pctX(x);d.style.top=pctY(y);board.appendChild(d);setTimeout(()=>d.remove(),700);
 }
 function firePea(p){
   p.fireAnim=.54;
@@ -1688,6 +1692,7 @@ function addDeathFx(z){if(z.type==='brain'){
 function addPlantDeathFx(p){playSfx('plantDeath',1,'plantDeath',80,p.col+.5);deathFx.push({id:nextId++,type:'plant',plantType:p.type,x:p.col+.5,y:p.row+.5,age:0,life:.72})}
 function dropCone(z){playSfx('armorBreak',1,'armorBreak',70,z.x);coneFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:Math.random()<.5?-1:1,kind:z.type==='bucket'?'bucket':'cone'})}
 function damageZombie(z,dmg,source=null,isFireDamage=false){
+  if(z?.type==='workboss'&&!['intermission','finalStand'].includes(level10Boss?.phase))return;
   if(source)z.lastDamageSource=source;
   const incoming=Math.max(0,dmg);
   let armorLost=0, bodyLost=0;
@@ -2054,7 +2059,7 @@ function update(dt){
       reflector.hairCooldown=10;reflector.hairAttack=1.34;
       continue;
     }
-    const target=zombies.filter(z=>z.hp>0&&!z.bossSlide&&z.digState!=='underground'&&!z.mountedToId&&(z.type==='workboss'||z.row===pea.row)&&Math.abs(z.x-pea.x)<.24).sort((a,b)=>a.x-b.x)[0];
+    const target=zombies.filter(z=>z.hp>0&&!z.bossSlide&&z.digState!=='underground'&&!z.mountedToId&&(z.type==='workboss'?['intermission','finalStand'].includes(level10Boss?.phase):z.row===pea.row)&&Math.abs(z.x-pea.x)<.24).sort((a,b)=>a.x-b.x)[0];
     if(target){
       damageZombie(target,pea.damage||10,pea.fire?'firePea':'pea',!!pea.fire);
       if(pea.fire)applyBurn(target,pea.burnTotal||20,pea.burnDuration||2,'firePeaBurn');
@@ -4387,53 +4392,52 @@ function drawCrawlerTrailCanvas(canvas,z){
   c.fillStyle='#6d2029';c.beginPath();c.ellipse(w-7,h*.58,Math.max(4,h*.10),Math.max(3,h*.08),.3,0,Math.PI*2);c.fill();
 }
 function drawWorkBoss(c,z){
-  const w=c.canvas.width,h=c.canvas.height,t=gameTime,step=Math.sin(t*4.2),attack=level10Boss?.phase==='attack';c.save();c.clearRect(0,0,w,h);c.translate(w*.5,h*.5);c.scale(w/150,h/180);
-  c.fillStyle='#111719';c.beginPath();c.ellipse(0,62,36,10,0,0,Math.PI*2);c.fill();
-  c.strokeStyle='#20282a';c.lineWidth=15;c.lineCap='round';c.beginPath();c.moveTo(-13,28);c.lineTo(-18,65+step*2);c.moveTo(13,28);c.lineTo(18,65-step*2);c.stroke();
-  c.fillStyle='#d39142';c.strokeStyle='#49301c';c.lineWidth=3;c.beginPath();c.roundRect(-31,-9,62,72,8);c.fill();c.stroke();
-  c.fillStyle='#e5b35b';c.fillRect(-24,2,48,44);c.strokeStyle='#7b5128';c.lineWidth=2;c.strokeRect(-24,2,48,44);
-  c.strokeStyle='#4a3725';c.lineWidth=5;c.beginPath();c.moveTo(-18,5);c.lineTo(-18,40);c.moveTo(18,5);c.lineTo(18,40);c.stroke();
-  const arm=attack?Math.sin(t*6)*18:step*4;c.strokeStyle='#d39142';c.lineWidth=11;c.beginPath();c.moveTo(-27,4);c.lineTo(-48-arm*.2,30+arm);c.moveTo(27,4);c.lineTo(47+arm*.2,26-arm);c.stroke();
-  c.fillStyle='#b87336';c.fillRect(-15,-31,30,23);c.fillStyle='#e1a75e';c.beginPath();c.ellipse(0,-43,23,24,0,0,Math.PI*2);c.fill();c.stroke();
-  c.fillStyle='#13191a';c.fillRect(-23,-51,46,7);c.fillStyle='#8dd4df';c.fillRect(-15,-45,11,7);c.fillRect(4,-45,11,7);c.strokeStyle='#151c1e';c.lineWidth=3;c.strokeRect(-15,-45,11,7);c.strokeRect(4,-45,11,7);
-  c.strokeStyle='#283437';c.lineWidth=5;c.beginPath();c.moveTo(18,-27);c.lineTo(28,-20);c.lineTo(22,-12);c.stroke();c.restore();
+  const w=c.canvas.width,h=c.canvas.height,t=gameTime,step=Math.sin(t*4.2),smashing=(z.smashTime||0)>0;
+  const smashQ=smashing?1-Math.min(1,z.smashTime/.78):0,swing=smashQ<.42?smashQ/.42:1-Math.min(1,(smashQ-.42)/.58)*.18;
+  c.save();c.clearRect(0,0,w,h);c.translate(w*.5,h*.5);c.scale(w/150,h/180);
+  if((z.teleportFx||0)>0){const u=1-z.teleportFx/.65;c.strokeStyle=`rgba(116,225,255,${Math.max(0,1-u)})`;c.lineWidth=5;c.beginPath();c.ellipse(0,4,35+u*24,72-u*20,0,0,Math.PI*2);c.stroke();c.fillStyle=`rgba(174,244,255,${Math.max(0,.22-u*.2)})`;c.fillRect(-43,-72,86,142);}
+  c.fillStyle='#111719';c.beginPath();c.ellipse(0,62,32,9,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='#252d2d';c.lineWidth=14;c.lineCap='round';c.beginPath();c.moveTo(-12,27);c.lineTo(-17,64+step*2);c.moveTo(12,27);c.lineTo(17,64-step*2);c.stroke();
+  c.fillStyle='#d18b35';c.strokeStyle='#49301c';c.lineWidth=3;c.beginPath();c.roundRect(-28,-8,56,65,7);c.fill();c.stroke();
+  c.fillStyle='#e5ad4e';c.fillRect(-22,1,44,42);c.strokeStyle='#725026';c.lineWidth=2;c.strokeRect(-22,1,44,42);
+  c.strokeStyle='#4a3725';c.lineWidth=5;c.beginPath();c.moveTo(-16,4);c.lineTo(-16,38);c.moveTo(16,4);c.lineTo(16,38);c.stroke();
+  const frontX=smashing?-44-swing*10:-43-step*2,frontY=smashing?-12+swing*52:25+step*3;
+  c.strokeStyle='#8f9c67';c.lineWidth=10;c.beginPath();c.moveTo(-25,3);c.lineTo(frontX,frontY);c.moveTo(25,3);c.lineTo(42,24-step*2);c.stroke();
+  // Oversized steel wrench stays attached to the leading hand throughout the swing.
+  c.save();c.translate(frontX,frontY);c.rotate(smashing?(-1.15+swing*1.65):-.42);c.strokeStyle='#30383b';c.lineWidth=7;c.beginPath();c.moveTo(0,0);c.lineTo(-2,-39);c.stroke();c.strokeStyle='#9ba7aa';c.lineWidth=3;c.beginPath();c.moveTo(0,0);c.lineTo(-2,-39);c.stroke();c.fillStyle='#596469';c.beginPath();c.arc(-2,-44,10,.35,Math.PI*1.65);c.lineTo(-2,-44);c.closePath();c.fill();c.restore();
+  c.fillStyle='#78855b';c.fillRect(-13,-29,26,21);c.fillStyle='#98a56c';c.strokeStyle='#3e472f';c.lineWidth=3;c.beginPath();c.ellipse(0,-42,21,23,0,0,Math.PI*2);c.fill();c.stroke();
+  c.fillStyle='#151b1c';c.fillRect(-23,-52,46,7);c.fillStyle='#8dd4df';c.fillRect(-15,-46,11,7);c.fillRect(4,-46,11,7);c.strokeStyle='#151c1e';c.lineWidth=3;c.strokeRect(-15,-46,11,7);c.strokeRect(4,-46,11,7);
+  c.strokeStyle='#30383b';c.lineWidth=4;c.beginPath();c.moveTo(17,-27);c.lineTo(26,-20);c.lineTo(20,-13);c.stroke();c.restore();
 }
 function drawBossTruck(c,open=0){
   const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5);c.scale(w/220,h/220);
-  c.fillStyle='#111719';c.strokeStyle='#050708';c.lineWidth=5;c.beginPath();c.roundRect(-75,-98,150,196,13);c.fill();c.stroke();
-  c.fillStyle='#39464b';c.fillRect(-63,-86,126,170);c.strokeStyle='#829197';c.lineWidth=3;c.strokeRect(-63,-86,126,170);
-  c.fillStyle='#151d20';c.fillRect(-52,-70,104,110);c.fillStyle='#27363a';c.fillRect(-44,-60,88,92);
-  c.fillStyle='#9b2c2c';c.fillRect(-52,-80,104,7);c.fillStyle='#cbd1bf';c.font='bold 18px sans-serif';c.textAlign='center';c.fillText('铁甲战车',0,-88);
-  c.save();c.translate(0,84);c.rotate(-open*.16);c.fillStyle='#647278';c.fillRect(-62,-8,124,18);c.strokeStyle='#aab8bb';c.strokeRect(-62,-8,124,18);c.strokeStyle='#273337';c.lineWidth=3;for(let x=-45;x<50;x+=18){c.beginPath();c.moveTo(x,-7);c.lineTo(x+9,9);c.stroke();}c.restore();
-  c.fillStyle='#20292c';for(const x of [-50,50]){c.beginPath();c.arc(x,91,14,0,Math.PI*2);c.fill();c.fillStyle='#839094';c.beginPath();c.arc(x,91,6,0,Math.PI*2);c.fill();c.fillStyle='#20292c';}
+  // Only the rear slice of a much larger armored cargo box enters the lawn.
+  c.fillStyle='#101516';c.strokeStyle='#050708';c.lineWidth=6;c.beginPath();c.roundRect(-108,-105,216,210,10);c.fill();c.stroke();
+  c.fillStyle='#455156';c.fillRect(-96,-94,192,188);c.strokeStyle='#879397';c.lineWidth=4;c.strokeRect(-96,-94,192,188);
+  c.fillStyle='#242d30';for(let y=-78;y<83;y+=24)c.fillRect(-91,y,182,5);
+  c.fillStyle='#111719';c.fillRect(-72,-72,144,134);c.strokeStyle='#7d898d';c.lineWidth=5;c.strokeRect(-72,-72,144,134);
+  const shutter=54*(1-open);
+  c.fillStyle='#5d696d';c.fillRect(-68,-68,136,shutter);c.fillRect(-68,58-shutter,136,shutter);
+  c.strokeStyle='#a0abad';c.lineWidth=3;for(let x=-52;x<=52;x+=26){c.beginPath();c.moveTo(x,-68);c.lineTo(x,-68+shutter);c.moveTo(x,58);c.lineTo(x,58-shutter);c.stroke();}
+  c.fillStyle='#b72c2c';c.fillRect(-94,-89,14,10);c.fillRect(80,-89,14,10);c.fillStyle='#e6c54e';c.fillRect(-94,79,14,10);c.fillRect(80,79,14,10);
+  c.fillStyle='#171d1f';for(const x of [-72,72]){c.beginPath();c.arc(x,98,17,0,Math.PI*2);c.fill();c.fillStyle='#839094';c.beginPath();c.arc(x,98,7,0,Math.PI*2);c.fill();c.fillStyle='#171d1f';}
   c.restore();
 }
 function drawRaidRamp(c,extend,closing){
   const w=c.canvas.width,h=c.canvas.height;
   c.clearRect(0,0,w,h);c.save();
-  // Tall truck cargo opening at the right edge.
-  c.fillStyle='#24292b';c.fillRect(w*.78,2,w*.22,h*.64);
-  c.fillStyle='#111516';c.fillRect(w*.815,h*.08,w*.17,h*.48);
-  c.strokeStyle='#596064';c.lineWidth=8;c.strokeRect(w*.79,5,w*.205,h*.62);
-  for(let y=h*.12;y<h*.58;y+=18){c.strokeStyle='rgba(145,154,158,.28)';c.lineWidth=2;c.beginPath();c.moveTo(w*.82,y);c.lineTo(w*.98,y);c.stroke();}
-  // Large hinged unloading plate: high at the truck, sloping down into the lawn.
-  const tipX=w*(.79-.73*extend), hingeX=w*.84;
-  const tipY=h*.83, hingeY=h*.52;
-  c.lineCap='round';c.lineJoin='round';
-  c.strokeStyle='#101416';c.lineWidth=34;c.beginPath();c.moveTo(hingeX,hingeY);c.lineTo(tipX,tipY);c.stroke();
-  c.strokeStyle='#596268';c.lineWidth=27;c.beginPath();c.moveTo(hingeX,hingeY);c.lineTo(tipX,tipY);c.stroke();
-  c.strokeStyle='#858e91';c.lineWidth=4;c.beginPath();c.moveTo(hingeX,hingeY-4);c.lineTo(tipX,tipY-4);c.stroke();
-  // Ribbing and hazard marks make the plate read as heavy steel.
-  for(let i=0;i<8;i++){
-    const t=i/8, x=hingeX+(tipX-hingeX)*t, y=hingeY+(tipY-hingeY)*t;
-    c.strokeStyle=i%2?'#343a3d':'#6b7377';c.lineWidth=5;c.beginPath();c.moveTo(x-4,y-10);c.lineTo(x+4,y+10);c.stroke();
+  // A single broad loading plate covers all three delivery lanes.
+  const hingeX=w*.88,tipX=w*(.86-.79*extend),hingeTop=h*.10,hingeBottom=h*.90,tipTop=h*.29,tipBottom=h*.71;
+  c.lineJoin='round';c.fillStyle='#596469';c.strokeStyle='#111719';c.lineWidth=12;c.beginPath();c.moveTo(hingeX,hingeTop);c.lineTo(tipX,tipTop);c.lineTo(tipX,tipBottom);c.lineTo(hingeX,hingeBottom);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='#9aa5a8';c.lineWidth=4;c.beginPath();c.moveTo(hingeX-3,hingeTop+5);c.lineTo(tipX+3,tipTop+4);c.moveTo(hingeX-3,hingeBottom-5);c.lineTo(tipX+3,tipBottom-4);c.stroke();
+  for(let i=1;i<8;i++){
+    const q=i/8,x=hingeX+(tipX-hingeX)*q,top=hingeTop+(tipTop-hingeTop)*q,bottom=hingeBottom+(tipBottom-hingeBottom)*q;
+    c.strokeStyle=i%2?'#333c40':'#778286';c.lineWidth=5;c.beginPath();c.moveTo(x,top+4);c.lineTo(x,bottom-4);c.stroke();
   }
-  c.fillStyle='#b18b28';c.beginPath();c.arc(hingeX,hingeY,12,0,Math.PI*2);c.fill();c.strokeStyle='#191d1e';c.lineWidth=5;c.stroke();
-  // Hydraulic supports under the ramp.
-  c.strokeStyle='#202527';c.lineWidth=9;c.beginPath();c.moveTo(w*.88,h*.69);c.lineTo(w*.54,h*.87);c.stroke();
-  c.strokeStyle='#7b8589';c.lineWidth=4;c.beginPath();c.moveTo(w*.87,h*.68);c.lineTo(w*.55,h*.86);c.stroke();
-  // dark wheels/body hint at a truck just off the lawn
-  c.fillStyle='#0c0f10';c.beginPath();c.arc(w*.91,h*.76,22,0,Math.PI*2);c.fill();c.strokeStyle='#555d60';c.lineWidth=6;c.stroke();
+  // Three longitudinal rails make the plate read as one three-lane deck.
+  for(const q of [.33,.66]){const y0=hingeTop+(hingeBottom-hingeTop)*q,y1=tipTop+(tipBottom-tipTop)*q;c.strokeStyle='#30383b';c.lineWidth=4;c.beginPath();c.moveTo(hingeX,y0);c.lineTo(tipX,y1);c.stroke();}
+  c.fillStyle='#b38b27';for(const y of [hingeTop,hingeBottom]){c.beginPath();c.arc(hingeX,y,11,0,Math.PI*2);c.fill();c.strokeStyle='#171c1e';c.lineWidth=4;c.stroke();}
+  c.strokeStyle='#7b8589';c.lineWidth=7;c.beginPath();c.moveTo(w*.91,h*.82);c.lineTo(w*.57,h*.76);c.moveTo(w*.91,h*.18);c.lineTo(w*.57,h*.24);c.stroke();
   c.restore();
 }
 
@@ -4498,25 +4502,25 @@ function render(){
   if(finalRaidBusy()){
     const r=finalRaid;
     const drive=Math.max(0,Math.min(1,r.age/.95)),driveEase=drive*drive*(3-2*drive);
-    const truckX=10.85+(8.75-10.85)*driveEase;
+    const truckX=11.60+(9.35-11.60)*driveEase;
     let ext=Math.max(0,Math.min(1,(r.age-.78)/Math.max(.2,r.extendDur-.78)));
     if(r.closing)ext*=Math.max(0,1-r.closeAge/1.25);
     if(ext>.01){
-      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.55);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.3/COLS*100)+'%';ramp.style.height=(100/ROWS*3.05)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
-      const rc=document.createElement('canvas');rc.width=620;rc.height=260;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),ext,!!r.closing);ramp.appendChild(rc);frameUnits.appendChild(ramp);
+      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.82);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.8/COLS*100)+'%';ramp.style.height=(100/ROWS*3.12)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
+      const rc=document.createElement('canvas');rc.width=MOBILE_PERF?300:480;rc.height=MOBILE_PERF?160:220;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),ext,!!r.closing);ramp.appendChild(rc);frameUnits.appendChild(ramp);
     }
     const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(truckX);d.style.top=pctY(ROWS/2);
-    d.style.width=(2.35/COLS*100)+'%';d.style.height=(100/ROWS*3.05)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
-    const c=document.createElement('canvas');c.width=160;c.height=204;c.style.width='100%';c.style.height='100%';drawBossTruck(c.getContext('2d'),ext);d.appendChild(c);frameUnits.appendChild(d);
+    d.style.width=(3.2/COLS*100)+'%';d.style.height=(100/ROWS*3.12)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
+    const c=document.createElement('canvas');c.width=200;c.height=220;c.style.width='100%';c.style.height='100%';drawBossTruck(c.getContext('2d'),ext);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===10&&level10Boss){
-    const drive=Math.max(0,Math.min(1,level10Boss.age/1.15)),driveEase=drive*drive*(3-2*drive),truckX=10.85+(8.75-10.85)*driveEase;
+    const drive=Math.max(0,Math.min(1,level10Boss.age/1.15)),driveEase=drive*drive*(3-2*drive),truckX=11.60+(9.35-11.60)*driveEase;
     if(level10Boss.truckOpen>.01){
-      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.55);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.3/COLS*100)+'%';ramp.style.height=(100/ROWS*3.05)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
-      const rc=document.createElement('canvas');rc.width=620;rc.height=260;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),level10Boss.truckOpen,false);ramp.appendChild(rc);frameUnits.appendChild(ramp);
+      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.82);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.8/COLS*100)+'%';ramp.style.height=(100/ROWS*3.12)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
+      const rc=document.createElement('canvas');rc.width=MOBILE_PERF?300:480;rc.height=MOBILE_PERF?160:220;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),level10Boss.truckOpen,false);ramp.appendChild(rc);frameUnits.appendChild(ramp);
     }
-    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(truckX);truck.style.top=pctY(ROWS/2);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
-    const tc=document.createElement('canvas');tc.width=160;tc.height=204;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc.getContext('2d'),level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
+    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(truckX);truck.style.top=pctY(ROWS/2);truck.style.width=(3.2/COLS*100)+'%';truck.style.height=(100/ROWS*3.12)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
+    const tc=document.createElement('canvas');tc.width=200;tc.height=220;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc.getContext('2d'),level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
   }
   if(currentLevel===7&&level7Event){
     const e=level7Event;
@@ -4697,7 +4701,7 @@ function render(){
   for(const z of zombies){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
     if(z.type==='workboss'){
-      d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(2.5);d.style.width=(2.25/COLS*100)+'%';d.style.height=(100/ROWS*2.7)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
+      d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(z.row+.5);d.style.width=(1.38/COLS*100)+'%';d.style.height=(100/ROWS*1.72)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
       const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc.getContext('2d'),z);d.appendChild(bc);
       const hp=document.createElement('div');hp.className='bossHp';const fill=document.createElement('div');fill.className='bossHpFill';fill.style.width=(Math.max(0,Math.min(1,z.hp/z.maxHp))*100)+'%';hp.appendChild(fill);d.appendChild(hp);frameUnits.appendChild(d);continue;
     }
