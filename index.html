@@ -4467,17 +4467,20 @@ function drawPeaProjectile(x,p){
 function drawPeaImpact(x,t,fire=false){
   const u=Math.min(1,t/.34),frame=PEA_FLIGHT_FRAMES+Math.min(PEA_IMPACT_FRAMES-1,Math.floor(u*PEA_IMPACT_FRAMES));
   const sprite=getPeaSpriteFrame(frame,fire);
-  x.save();x.globalAlpha=Math.max(.12,1-u*.78);x.imageSmoothingEnabled=false;
+  x.save();x.globalAlpha=Math.max(.08,1-u*.88);x.imageSmoothingEnabled=false;
+  // Pea momentum continues to the right, through the hit plane and behind the zombie.
+  x.translate(u*11,0);x.transform(1+u*.18,0,0,1-u*.12,0,0);
   if(sprite)x.drawImage(sprite,0,0);
-  else{
-    x.fillStyle=fire?'#ed761a':'#67d44d';x.beginPath();x.arc(32,32,Math.max(2,9*(1-u)),0,Math.PI*2);x.fill();
-  }
-  if(fire){
-    for(let i=0;i<4;i++){
-      const ang=i*1.71+.45,d=8+u*(12+i*2);
-      x.globalAlpha=(1-u)*.8;x.fillStyle=i%2?'#ffd83d':'#ed6716';
-      x.fillRect(31+Math.cos(ang)*d,31+Math.sin(ang)*d,2+(i%2),2+(i%2));
-    }
+  else{x.fillStyle=fire?'#ed761a':'#67d44d';x.beginPath();x.arc(32,32,Math.max(2,9*(1-u)),0,Math.PI*2);x.fill();}
+  x.restore();
+  // Uneven fragments lead to the right rather than expanding as a centered pancake.
+  x.save();
+  for(let i=0;i<8;i++){
+    const seed=((i*37+11)%17)/17,lead=8+u*(15+i*3.1),rise=(i%2?1:-1)*(3+u*(3+i*.72));
+    const px=31+lead,py=32+rise+Math.sin(i*2.4)*2;
+    x.globalAlpha=Math.max(0,(1-u)*(.58+seed*.38));
+    x.fillStyle=fire?(i%3===0?'#24140a':i%2?'#ffd83d':'#ed6716'):(i%3===0?'#2e762b':i%2?'#9bf27a':'#58c744');
+    x.save();x.translate(px,py);x.rotate(u*4+i*.73);x.fillRect(-1.5-seed*1.2,-1,3+seed*2.4,2+(i%2));x.restore();
   }
   x.restore();
 }
@@ -4552,6 +4555,24 @@ function drawCrawlerTrailCanvas(canvas,z){
   // Far end is organic now—no artificial stake/pin.
   c.fillStyle='#6d2029';c.beginPath();c.ellipse(w-7,h*.58,Math.max(4,h*.10),Math.max(3,h*.08),.3,0,Math.PI*2);c.fill();
 }
+const workerBossSheet=new Image();
+workerBossSheet.decoding='async';
+workerBossSheet.src='assets/worker-boss-sprite.png';
+const workerBossFrameCache=[];
+function getWorkerBossFrame(frame){
+  if(!workerBossSheet.complete||!workerBossSheet.naturalWidth)return null;
+  frame=Math.max(0,Math.min(3,frame|0));if(workerBossFrameCache[frame])return workerBossFrameCache[frame];
+  const sw=workerBossSheet.naturalWidth/4,sh=workerBossSheet.naturalHeight,scan=document.createElement('canvas');
+  scan.width=Math.max(1,Math.ceil(sw));scan.height=sh;
+  const sg=scan.getContext('2d',{willReadFrequently:true});sg.imageSmoothingEnabled=false;sg.drawImage(workerBossSheet,frame*sw,0,sw,sh,0,0,scan.width,scan.height);
+  const data=sg.getImageData(0,0,scan.width,scan.height).data;let minX=scan.width,minY=scan.height,maxX=-1,maxY=-1;
+  for(let y=0;y<scan.height;y++)for(let x=0;x<scan.width;x++)if(data[(y*scan.width+x)*4+3]>10){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+  if(maxX<minX)return null;
+  const bw=maxX-minX+1,bh=maxY-minY+1,scale=Math.min(142/bw,174/bh),dw=Math.round(bw*scale),dh=Math.round(bh*scale);
+  const out=document.createElement('canvas');out.width=150;out.height=180;const g=out.getContext('2d');g.imageSmoothingEnabled=false;
+  g.drawImage(workerBossSheet,frame*sw+minX,minY,bw,bh,Math.round((150-dw)/2),178-dh,dw,dh);
+  workerBossFrameCache[frame]=out;return out;
+}
 function drawThrownWrench(c,w){
   const u=Math.min(1,w.age/w.dur);c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();c.translate(c.canvas.width/2,c.canvas.height/2);
   if(!w.hit){
@@ -4568,7 +4589,7 @@ function drawThrownWrench(c,w){
   if(w.hit){const a=Math.max(0,1-w.impactAge/.34);c.globalAlpha=a;for(let i=0;i<8;i++){const ang=i*.82-.35,len=17+(i%3)*6;c.strokeStyle=i%2?'#ffd74a':'#f29227';c.lineWidth=2.4;c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(ang)*len,Math.sin(ang)*len);c.stroke();}}
   c.restore();
 }
-function drawWorkBoss(c,z){
+function drawWorkBossFallback(c,z){
   const w=c.canvas.width,h=c.canvas.height,t=gameTime,bob=Math.sin(t*3.5)*1.4;
   const throwing=(z.throwTime||0)>0,q=throwing?1-z.throwTime/.92:0;
   const wind=q<.38?q/.38:1,release=Math.max(0,Math.min(1,(q-.38)/.30)),recover=Math.max(0,Math.min(1,(q-.68)/.32));
@@ -4609,6 +4630,18 @@ function drawWorkBoss(c,z){
     c.save();c.translate(handX,handY);c.rotate(throwing?(-1.1+wind*.55):1.42);c.strokeStyle='#302d29';c.lineWidth=7;c.beginPath();c.moveTo(0,0);c.lineTo(0,41);c.stroke();c.strokeStyle='#9a958b';c.lineWidth=3;c.beginPath();c.moveTo(0,1);c.lineTo(0,39);c.stroke();c.fillStyle='#58534c';c.beginPath();c.arc(0,46,10,.35,Math.PI*1.65);c.lineTo(0,46);c.closePath();c.fill();c.restore();
   }
   if((z.bossHitFx||0)>0){const a=Math.min(.72,z.bossHitFx/.24*.72);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(-75,-100,150,180);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
+  c.restore();
+}
+function drawWorkBoss(c,z){
+  const throwing=(z.throwTime||0)>0,q=throwing?1-z.throwTime/.92:0;
+  const frame=!throwing?0:(q<.36?1:(q<.62?2:3)),sprite=getWorkerBossFrame(frame);
+  if(!sprite){drawWorkBossFallback(c,z);return;}
+  const w=c.canvas.width,h=c.canvas.height,bob=!throwing?Math.sin(gameTime*3.2)*1.3:0;
+  c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5+bob);
+  const wind=throwing&&q<.36?q/.36:0,follow=throwing&&q>=.62?(q-.62)/.38:0;
+  c.rotate((-wind*3.5+follow*2.2)*Math.PI/180);c.translate(-w*.5,-h*.5);
+  c.imageSmoothingEnabled=false;c.drawImage(sprite,0,0,w,h);
+  if((z.bossHitFx||0)>0){const a=Math.min(.68,z.bossHitFx/.24*.68);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(0,0,w,h);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
   c.restore();
 }
 function drawBossTruck(c,open=0){
@@ -5463,7 +5496,6 @@ drawToolCards();const ssi=document.getElementById('sunStripIcon').getContext('2d
 document.querySelectorAll('.levelCard').forEach(b=>{if(TEST_MODE){b.classList.remove('locked');const tag=b.querySelector('.levelTag');if(tag&&!b.classList.contains('done'))tag.textContent='测试开放';}b.addEventListener('click',()=>{const n=+b.dataset.level;if(!TEST_MODE&&b.classList.contains('locked')){b.animate([{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'none'}],{duration:180});return}openPlantSelect(n)})});
 document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.tool;if(t==='lighter'&&!lighterTutorSeen()){openLighterTutorial().then(()=>{selectTool('lighter');say('教学完成：现在可以亲自使用打火机。')});return;}if(selected==='glove'&&t!=='glove'){glovePlantId=null;gloveFx=null;}if(selected===t){if(t==='glove'){glovePlantId=null;gloveFx=null;}selectTool(null);say('已取消选择。');return;}selectTool(t)}));
 function beginBattle(){
-  requestGameFullscreen();
   if(ended||battleStarted)return;
   battleStarted=true;running=true;syncPlantingBulletTime();stopIdleBgm();playBattleBgm();primeBossBgmForLevel10();resumeSfx();playSfx('wave',.8,'battleStart',800);
   spawnClock=0;skySunClock=0;gameTime=0;last=performance.now();updatePlantTargets();
