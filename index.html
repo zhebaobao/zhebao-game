@@ -594,6 +594,11 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
   .selectActions{position:static!important;margin:5px 0 0!important;padding:4px 0 max(5px,env(safe-area-inset-bottom))!important;background:#172818!important}
 }
 
+
+/* Carried plant cards are the single source of truth for the in-battle seed bank.
+   This late, high-specificity rule overrides the mobile grid card layout. */
+#battleRoot .tools>.tool.hiddenPlant,
+#battleRoot .tools>.tool[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -5247,8 +5252,10 @@ function applyLevelUI(){
   document.querySelectorAll('.cell').forEach(c=>c.classList.toggle('laneLocked',!cfg.rows.includes(+c.dataset.row)));
   document.querySelectorAll('.tool[data-tool]').forEach(b=>{
     const t=b.dataset.tool;if(t==='shovel'||t==='glove')return;
-    let allowed=selectedPlants.includes(t);
+    const allowed=selectedPlants.includes(t);
     b.classList.toggle('hiddenPlant',!allowed);
+    b.hidden=!allowed;
+    b.setAttribute('aria-hidden',allowed?'false':'true');
   });
   const noteMap={1:'第 1 关：两条草坪路线',2:'第 2 关：三条草坪路线',3:'第 3 关：半身爬行者',4:'第 4 关：混合尸潮',5:'第 5 关：五路草坪 · 低矮小鬼丧尸',6:'第 6 关：五路草坪 · 长发丧尸 · 反弹豌豆',7:'第 7 关：铁架施工 · 飞机投桶突袭',8:'第 8 关：脑浆感染 · 三波旗帜 · 解锁十字吹风机',10:'第 10 关：战车 Boss · 装卸突袭'};
   const subMap={1:'1-1 · 特勤试炼 · 双线防守',2:'1-2 · 狂暴来袭 · 三线防守',3:'1-3 · 地面威胁 · 爬行者来袭',4:'1-4 · 尸潮进阶 · 混合推进',5:'1-5 · 五路防区 · 小鬼丧尸登场',6:'1-6 · 阴发来袭 · 长发丧尸登场',7:'1-7 · 空投突袭 · 铁桶防线',8:'1-8 · 脑浆感染 · 三旗帜增益波',9:'1-9 · 矿工破阵 · 地下威胁',10:'1-10 · 战车 Boss · 最后一波'};
@@ -5605,7 +5612,7 @@ function drawToolCards(){
 }
 drawToolCards();const ssi=document.getElementById('sunStripIcon').getContext('2d');ssi.imageSmoothingEnabled=false;drawSun(ssi);
 document.querySelectorAll('.levelCard').forEach(b=>{if(TEST_MODE){b.classList.remove('locked');const tag=b.querySelector('.levelTag');if(tag&&!b.classList.contains('done'))tag.textContent='测试开放';}b.addEventListener('click',()=>{const n=+b.dataset.level;if(!TEST_MODE&&b.classList.contains('locked')){b.animate([{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'none'}],{duration:180});return}openPlantSelect(n)})});
-document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.tool;if(selected==='glove'&&t!=='glove'){glovePlantId=null;gloveFx=null;}if(selected===t){if(t==='glove'){glovePlantId=null;gloveFx=null;}selectTool(null);say('已取消选择。');return;}selectTool(t)}));
+document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{if(b.hidden||b.classList.contains('hiddenPlant'))return;const t=b.dataset.tool;if(selected==='glove'&&t!=='glove'){glovePlantId=null;gloveFx=null;}if(selected===t){if(t==='glove'){glovePlantId=null;gloveFx=null;}selectTool(null);say('已取消选择。');return;}selectTool(t)}));
 function beginBattle(){
   if(ended||battleStarted)return;
   battleStarted=true;running=true;syncPlantingBulletTime();stopIdleBgm();playBattleBgm();primeBossBgmForLevel10();resumeSfx();playSfx('wave',.8,'battleStart',800);
