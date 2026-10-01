@@ -490,8 +490,7 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
 
 
 /* Performance containment: battlefield changes must not invalidate the surrounding HUD/layout. */
-#units{contain:layout paint style;will-change:contents;transform:translateZ(0)}
-.entity,.raidRamp,.fanWind,.crawlerTrail,.looseBucket{will-change:transform,left,top}
+#units{contain:layout paint style;transform:translateZ(0)}
 .sprite{contain:strict}
 @media (pointer:coarse){
   .bloodMist,.armorBreak,.chalkBreak{will-change:transform,opacity}
@@ -679,6 +678,9 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
   </div>
   <input id="sfxVolume" type="range" min="0" max="100" value="72" step="1" style="width:100%;accent-color:#d9b95b">
   <button class="btn" id="sfxMute" type="button" style="margin-top:10px;width:100%">关闭音效</button>
+  <div style="height:1px;background:#53614a;margin:12px 0"></div>
+  <button class="btn" id="qualityToggle" type="button" style="width:100%">画质：自动</button>
+  <small style="display:block;margin-top:6px;color:#cbd8b8;line-height:1.5">高清让角色更清晰；流畅适合较慢的手机。</small>
 </div>
 <div class="settingsActions">
       <button class="btn primary" id="settingsResume" type="button">继续游戏</button>
@@ -1081,8 +1083,11 @@ function saveSummary(){const highest=completedLevels.length?Math.max(...complete
 
 const MOBILE_PERF=matchMedia('(pointer:coarse)').matches||matchMedia('(max-width:900px)').matches;
 const DEVICE_DPR=Math.max(1,window.devicePixelRatio||1);
-// Mobile clarity budget: keep characters crisp on high-DPI phones without letting 3x/4x screens explode the canvas workload.
-const MOBILE_RENDER_SCALE=MOBILE_PERF?Math.max(2,Math.min(3,Math.ceil(DEVICE_DPR))):4;
+const QUALITY_KEY='zhebao.graphicsQuality';
+let qualityMode=localStorage.getItem(QUALITY_KEY)||'auto';
+if(!['auto','high','smooth'].includes(qualityMode))qualityMode='auto';
+function spriteRenderScale(){return qualityMode==='high'?4:qualityMode==='smooth'?2:(MOBILE_PERF?Math.max(2,Math.min(3,Math.ceil(DEVICE_DPR))):4)}
+let MOBILE_RENDER_SCALE=spriteRenderScale();
 const MOBILE_FX_SCALE=MOBILE_PERF?(DEVICE_DPR>=2.5?1.15:1):1;
 if(MOBILE_PERF)document.documentElement.classList.add('mobilePerf');
 let last=performance.now(),spawnClock=0,skySunClock=0,nextSpawnDelay=12,gameTime=0,rewardClaiming=false,dragSuppressUntil=0,glovePlantId=null,gloveFx=null,settingsWasRunning=false,looseBucketDrag=null,impSpawnClock=0,nextImpSpawnDelay=16+Math.random()*4,chainsaws=[],chainsawFx=[],waveBurstRemaining=0,waveTriggeredMid=false,waveTriggeredFinal=false,wavePulseTimer=0,finalRaid=null,level7Event=null;
@@ -1269,16 +1274,23 @@ function magnetAbsorb(p){
 function waveProgress(){if(currentLevel===7&&level7Event)return Math.min(1,((level7Event.wave-1)+Math.min(1,level7Event.waveSpawned[level7Event.wave-1]/Math.max(1,level7Event.waveTargets[level7Event.wave-1])))/4);const cfg=LEVELS[currentLevel];return cfg.total?Math.min(1,spawned/cfg.total):0;}
 function waveStage(){if(currentLevel===7&&level7Event)return level7Event.wave-1;return Math.min(3,Math.floor(waveProgress()*4));}
 function hasMidWave(){return currentLevel>=3;}
+let lastWaveUIKey='';
 function updateWaveUI(){
   if(!waveFill)return;
-  const p=waveProgress();waveFill.style.width=(p*100)+'%';
+  const p=waveProgress();
   const stage=currentLevel===8?Math.min(3,Math.floor(p*3)+1):(currentLevel===7&&level7Event?level7Event.wave:Math.min(4,Math.floor(p*4)+1));
+  const state=currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':''));
+  const surge=(finalRaidBusy()||waveBurstRemaining>0)&&wavePulseTimer>0;
+  const key=[currentLevel,p,stage,state,surge].join('|');
+  if(key===lastWaveUIKey)return;
+  lastWaveUIKey=key;
+  waveFill.style.width=(p*100)+'%';
   waveStageText.textContent=currentLevel===8?`第 ${stage}/3 波`:`第 ${stage}/4 波`;
   waveMidFlag.style.display=hasMidWave()?'block':'none';
   waveMidFlag.classList.toggle('reached',hasMidWave()&&p>=(currentLevel===8?1/3:.5));
   waveFinalFlag.classList.toggle('reached',p>=(currentLevel===8?2/3:.75));
-  waveStateText.textContent=currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':''));
-  waveHud.classList.toggle('surge',(finalRaidBusy()||waveBurstRemaining>0)&&wavePulseTimer>0);
+  waveStateText.textContent=state;
+  waveHud.classList.toggle('surge',surge);
 }
 function startLevel4FinalRaid(){
   if(currentLevel!==4||finalRaid?.active)return;
@@ -1574,7 +1586,7 @@ function collectSun(id,el){
 }
 function showSunText(x,y,val){
   const d=document.createElement('div');d.className='toastSun';d.textContent='+'+val;
-  d.style.left=pctX(x);d.style.top=pctY(y);units.appendChild(d);setTimeout(()=>d.remove(),700);
+  d.style.left=pctX(x);d.style.top=pctY(y);board.appendChild(d);setTimeout(()=>d.remove(),700);
 }
 function firePea(p){
   p.fireAnim=.54;
@@ -2165,8 +2177,6 @@ function update(dt){
   const deadPlants=plants.filter(p=>p.type!=='crossfan'&&p.hp<=0);if(deadPlants.length){for(const p of deadPlants){if(p.type==='wall'&&p.fireMode)igniteFireTile(p.row,p.col,10);if(!p.skipDeath)addPlantDeathFx(p);}}
   plants=plants.filter(p=>p.type==='crossfan'?!p.crossExpired:p.hp>0);
 
-  for(const fx of groundBloodFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=3;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>drawGroundBlood(c,fx)));units.appendChild(d)}
-  for(const b of deathBloodDrops){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(b.x);d.style.top=pctY(b.y);d.style.zIndex=15;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>{c.save();c.translate(32,32);c.rotate(Math.atan2(b.vy,b.vx)+1.57);c.fillStyle='#9f0718';c.beginPath();c.ellipse(0,0,Math.max(2.8,b.size*48),Math.max(6,b.size*82),0,0,Math.PI*2);c.fill();c.fillStyle='#e12b39';c.beginPath();c.ellipse(-1,-2,Math.max(1.2,b.size*18),Math.max(2,b.size*28),0,0,Math.PI*2);c.fill();c.restore();}));units.appendChild(d)}
   for(const fx of deathFx){
     fx.age+=dt;
     if(fx.type==='zombie'&&!fx.bloodBurst&&fx.age>=.90){
@@ -2221,16 +2231,31 @@ function update(dt){
 }
 
 const spriteCanvasCache=new Map();
+const reusableSpriteCanvases={small:[],large:[]};
+function takeSpriteCanvas(size){
+  const pool=size===96?reusableSpriteCanvases.large:reusableSpriteCanvases.small;
+  const c=pool.pop()||document.createElement('canvas');
+  c.removeAttribute('style');
+  return c;
+}
+function resetSpriteCanvas(c,scale){
+  const x=c.getContext('2d',{alpha:true});
+  if(typeof x.reset==='function')x.reset();
+  else c.width=c.width;
+  x.setTransform(scale,0,0,scale,0,0);
+  x.imageSmoothingEnabled=false;
+  return x;
+}
 function makeCanvas(draw){
   const scale=MOBILE_RENDER_SCALE;
-  const c=document.createElement('canvas');c.width=64*scale;c.height=64*scale;c.className='sprite';
-  const x=c.getContext('2d',{alpha:true});x.imageSmoothingEnabled=false;x.scale(scale,scale);draw(x);return c;
+  const c=takeSpriteCanvas(64);if(c.width!==64*scale)c.width=64*scale;if(c.height!==64*scale)c.height=64*scale;c.className='sprite';
+  const x=resetSpriteCanvas(c,scale);draw(x);return c;
 }
 function makeLargeZombieCanvas(draw){
   // 96x96 logical drawing surface gives giant hands/overhead smash a 16px safety gutter on every side.
-  const scale=MOBILE_RENDER_SCALE,c=document.createElement('canvas');
-  c.width=96*scale;c.height=96*scale;c.className='sprite giantSprite';
-  const x=c.getContext('2d',{alpha:true});x.imageSmoothingEnabled=false;x.scale(scale,scale);
+  const scale=MOBILE_RENDER_SCALE,c=takeSpriteCanvas(96);
+  if(c.width!==96*scale)c.width=96*scale;if(c.height!==96*scale)c.height=96*scale;c.className='sprite giantSprite';
+  const x=resetSpriteCanvas(c,scale);
   x.translate(16,16);draw(x);return c;
 }
 
@@ -2242,8 +2267,8 @@ function cachedCanvas(key,draw){
     // Bound the cache so long sessions cannot grow forever.
     if(spriteCanvasCache.size>96){const first=spriteCanvasCache.keys().next().value;spriteCanvasCache.delete(first);}
   }
-  const c=document.createElement('canvas');c.width=master.width;c.height=master.height;c.className='sprite';
-  const x=c.getContext('2d',{alpha:true});x.imageSmoothingEnabled=false;x.drawImage(master,0,0);
+  const c=takeSpriteCanvas(64);if(c.width!==master.width)c.width=master.width;if(c.height!==master.height)c.height=master.height;c.className='sprite';
+  const x=resetSpriteCanvas(c,1);x.drawImage(master,0,0);
   return c;
 }
 function R(x,c,a,b,w,h){x.fillStyle=c;x.fillRect(Math.round(a),Math.round(b),Math.round(w),Math.round(h))}
@@ -4313,9 +4338,17 @@ document.addEventListener('pointercancel',e=>{
 },{capture:true});
 
 function render(){
-  units.innerHTML='';
+  reusableSpriteCanvases.small.length=0;
+  reusableSpriteCanvases.large.length=0;
+  for(const c of units.querySelectorAll('canvas.sprite')){
+    if(c.width===64*MOBILE_RENDER_SCALE&&reusableSpriteCanvases.small.length<256)reusableSpriteCanvases.small.push(c);
+    else if(c.width===96*MOBILE_RENDER_SCALE&&reusableSpriteCanvases.large.length<64)reusableSpriteCanvases.large.push(c);
+  }
+  const frameUnits=document.createDocumentFragment();
   // Browser layout work is the current bottleneck; isolate this rapidly changing layer.
   // All children remain absolutely positioned inside the existing battlefield.
+  for(const fx of groundBloodFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=3;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>drawGroundBlood(c,fx)));frameUnits.appendChild(d)}
+  for(const b of deathBloodDrops){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(b.x);d.style.top=pctY(b.y);d.style.zIndex=15;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>{c.save();c.translate(32,32);c.rotate(Math.atan2(b.vy,b.vx)+1.57);c.fillStyle='#9f0718';c.beginPath();c.ellipse(0,0,Math.max(2.8,b.size*48),Math.max(6,b.size*82),0,0,Math.PI*2);c.fill();c.fillStyle='#e12b39';c.beginPath();c.ellipse(-1,-2,Math.max(1.2,b.size*18),Math.max(2,b.size*28),0,0,Math.PI*2);c.fill();c.restore();}));frameUnits.appendChild(d)}
 
   // Fourth-level finale: keep the truck ramp visibly towering over the battlefield.
   if(finalRaidBusy()){
@@ -4325,7 +4358,7 @@ function render(){
     const d=document.createElement('div');d.className='raidRamp';
     d.style.left=pctX(COLS-4.15);d.style.top=pctY(-.42);
     d.style.width=(5.15/COLS*100)+'%';d.style.height=(100/ROWS*1.9)+'%';
-    const c=document.createElement('canvas');c.width=1000;c.height=440;const rampCtx=c.getContext('2d');if(rampCtx)drawRaidRamp(rampCtx,ext,r.closing);d.appendChild(c);units.appendChild(d);
+    const c=document.createElement('canvas');c.width=1000;c.height=440;const rampCtx=c.getContext('2d');if(rampCtx)drawRaidRamp(rampCtx,ext,r.closing);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===7&&level7Event){
     const e=level7Event;
@@ -4343,10 +4376,10 @@ function render(){
           x.strokeStyle='#69757a';x.lineWidth=4;x.beginPath();
           x.moveTo(14,128);x.lineTo(220,14);x.moveTo(35,128);x.lineTo(35,72);x.moveTo(120,72);x.lineTo(120,45);x.moveTo(35,91);x.lineTo(120,54);x.moveTo(120,60);x.lineTo(205,23);x.stroke();x.restore();
         });
-        d.appendChild(c);units.appendChild(d);
+        d.appendChild(c);frameUnits.appendChild(d);
       }
     }
-    if(e.plateAge>=0&&e.plateAge<2.0){const d=document.createElement('div');d.className='raidRamp';const u=Math.min(1,e.plateAge/1.1);d.style.left=pctX(COLS-.9);d.style.top=pctY(-.4+u*(ROWS-.8));d.style.width=(1.2/COLS*100)+'%';d.style.height=(100/ROWS*.42)+'%';d.style.zIndex='25';const c=document.createElement('canvas');c.width=260;c.height=90;const x=c.getContext('2d');x.translate(130,45);x.rotate(e.plateAge*3.5);x.fillStyle='#20282c';x.strokeStyle='#78858a';x.lineWidth=8;x.fillRect(-100,-18,200,36);x.strokeRect(-100,-18,200,36);d.appendChild(c);units.appendChild(d);}
+    if(e.plateAge>=0&&e.plateAge<2.0){const d=document.createElement('div');d.className='raidRamp';const u=Math.min(1,e.plateAge/1.1);d.style.left=pctX(COLS-.9);d.style.top=pctY(-.4+u*(ROWS-.8));d.style.width=(1.2/COLS*100)+'%';d.style.height=(100/ROWS*.42)+'%';d.style.zIndex='25';const c=document.createElement('canvas');c.width=260;c.height=90;const x=c.getContext('2d');x.translate(130,45);x.rotate(e.plateAge*3.5);x.fillStyle='#20282c';x.strokeStyle='#78858a';x.lineWidth=8;x.fillRect(-100,-18,200,36);x.strokeRect(-100,-18,200,36);d.appendChild(c);frameUnits.appendChild(d);}
     if(e.planes?.length){
       for(const plane of e.planes){
         if(plane.age<0||plane.age>plane.dur)continue;
@@ -4360,18 +4393,18 @@ function render(){
         x.beginPath();x.moveTo(14,63);x.lineTo(225,44);x.lineTo(304,60);x.lineTo(224,78);x.closePath();x.fill();x.stroke();
         x.fillStyle='#46535a';x.beginPath();x.moveTo(128,50);x.lineTo(184,8);x.lineTo(210,48);x.closePath();x.fill();
         x.beginPath();x.moveTo(128,72);x.lineTo(184,112);x.lineTo(210,75);x.closePath();x.fill();
-        x.fillStyle='#a7c7d0';x.fillRect(240,53,29,9);d.appendChild(c);units.appendChild(d);
+        x.fillStyle='#a7c7d0';x.fillRect(240,53,29,9);d.appendChild(c);frameUnits.appendChild(d);
       }
     }
   }
   for(const saw of chainsaws){
     if(saw.used)continue;
     const d=document.createElement('div');d.className='chainsawUnit';d.style.left=pctX(-.08);d.style.top=pctY(saw.row+.5);
-    d.appendChild(makeCanvas(c=>drawChainsaw(c,Math.sin(gameTime*2)*.05,true)));units.appendChild(d);
+    d.appendChild(makeCanvas(c=>drawChainsaw(c,Math.sin(gameTime*2)*.05,true)));frameUnits.appendChild(d);
   }
   for(const fx of chainsawFx){
     const d=document.createElement('div');d.className='chainsawUnit fly';d.style.left=pctX(fx.x);d.style.top=pctY(fx.row+.5);
-    d.appendChild(makeCanvas(c=>drawChainsaw(c,fx.age*28,true)));units.appendChild(d);
+    d.appendChild(makeCanvas(c=>drawChainsaw(c,fx.age*28,true)));frameUnits.appendChild(d);
   }
   for(const fx of crossFireFx){
     const d=document.createElement('div');d.className='crossFireFx';d.style.position='absolute';d.style.inset='0';d.style.zIndex='16';d.style.pointerEvents='none';
@@ -4379,11 +4412,11 @@ function render(){
     // translate source plant cell into the full-board canvas coordinate system
     const ctx=c.getContext('2d');ctx.save();ctx.translate((fx.col+.5)/COLS*c.width,(fx.row+.5)/ROWS*c.height);
     const temp=document.createElement('canvas');temp.width=c.width*2;temp.height=c.height*2;drawCrossFireCanvas(temp,fx);
-    ctx.drawImage(temp,-temp.width/2,-temp.height/2);ctx.restore();d.appendChild(c);units.appendChild(d);
+    ctx.drawImage(temp,-temp.width/2,-temp.height/2);ctx.restore();d.appendChild(c);frameUnits.appendChild(d);
   }
   for(const tile of fireTiles){
     const d=document.createElement('div');d.className='entity tileFire';d.style.left=pctX(tile.col+.5);d.style.top=pctY(tile.row+.5);d.style.width=(1/COLS*100)+'%';d.style.height=(100/ROWS)+'%';d.style.transform='translate(-50%,-50%)';d.style.zIndex='3';d.style.pointerEvents='none';
-    const c=document.createElement('canvas');c.width=MOBILE_PERF?112:220;c.height=MOBILE_PERF?112:220;c.style.width='100%';c.style.height='100%';c.style.display='block';drawBurningTileCanvas(c,tile);d.appendChild(c);units.appendChild(d);
+    const c=document.createElement('canvas');c.width=MOBILE_PERF?112:220;c.height=MOBILE_PERF?112:220;c.style.width='100%';c.style.height='100%';c.style.display='block';drawBurningTileCanvas(c,tile);d.appendChild(c);frameUnits.appendChild(d);
   }
   for(const p of plants){
     const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(p.col+.5);d.style.top=pctY(p.row+.5);
@@ -4439,7 +4472,7 @@ function render(){
       const ah=document.createElement('div');ah.className='plantArmorHp';const af=document.createElement('div');af.className='plantArmorHpFill';af.style.width=(Math.max(0,Math.min(1,p.armorHp/(p.armorMax||200)))*100)+'%';ah.appendChild(af);d.appendChild(ah);
       const helmet=makeCanvas(c=>drawPlantBucketHelmet(c,p));helmet.style.position='absolute';helmet.style.inset='0';helmet.style.pointerEvents='none';d.appendChild(helmet);
     }
-    units.appendChild(d);
+    frameUnits.appendChild(d);
   }
   // Detached buckets are draggable equipment. Drag state lives outside the rebuilt DOM,
   // so mouse/finger dragging remains stable even though units are redrawn every frame.
@@ -4457,14 +4490,14 @@ function render(){
       b.magnetId=null;b.state='dragging';
       moveLooseBucketPointer(e);
     });
-    units.appendChild(d);
+    frameUnits.appendChild(d);
   }
-  for(const fx of magnetFx){const u=fx.age/fx.life,d=document.createElement('div');d.className='magnetPulse';d.style.left=pctX(fx.x-2);d.style.top=pctY(fx.y-2);d.style.width=(4/COLS*100)+'%';d.style.height=(4/ROWS*100)+'%';d.style.opacity=String(1-u);units.appendChild(d);}
+  for(const fx of magnetFx){const u=fx.age/fx.life,d=document.createElement('div');d.className='magnetPulse';d.style.left=pctX(fx.x-2);d.style.top=pctY(fx.y-2);d.style.width=(4/COLS*100)+'%';d.style.height=(4/ROWS*100)+'%';d.style.opacity=String(1-u);frameUnits.appendChild(d);}
   if(gloveFx){
     const gp=plants.find(p=>p.id===gloveFx.plantId&&p.hp>0);
     if(gp){
       const d=document.createElement('div');d.className='entity gloveAnim';d.style.left=pctX(gp.col+.5);d.style.top=pctY(gp.row+.5);d.style.zIndex='30';d.style.pointerEvents='none';
-      const c=makeCanvas(ctx=>drawGloveAction(ctx,gloveFx));d.appendChild(c);units.appendChild(d);
+      const c=makeCanvas(ctx=>drawGloveAction(ctx,gloveFx));d.appendChild(c);frameUnits.appendChild(d);
     }
   }
   // Fan wind is a four-cell world-space stream of animated cold lines.
@@ -4473,7 +4506,7 @@ function render(){
     const d=document.createElement('div');d.className='fanWind';
     d.style.position='absolute';d.style.left=pctX(p.col+.72);d.style.top=pctY(p.row+.5);
     d.style.width=(4/COLS*100)+'%';d.style.height=(100/ROWS*.64)+'%';d.style.transform='translateY(-50%)';d.style.zIndex='6';d.style.pointerEvents='none';
-    const c=document.createElement('canvas');c.width=MOBILE_PERF?300:900;c.height=MOBILE_PERF?60:150;c.style.width='100%';c.style.height='100%';c.style.display='block';drawFanWindCanvas(c,p);d.appendChild(c);units.appendChild(d);
+    const c=document.createElement('canvas');c.width=MOBILE_PERF?300:900;c.height=MOBILE_PERF?60:150;c.style.width='100%';c.style.height='100%';c.style.display='block';drawFanWindCanvas(c,p);d.appendChild(c);frameUnits.appendChild(d);
   }
   // Crawler entrails are world-space trails, separate from the crawler sprite.
   for(const z of zombies){
@@ -4484,7 +4517,7 @@ function render(){
     d.style.position='absolute';d.style.left=pctX(mid);d.style.top=pctY(z.row+.72);
     d.style.width=widthPct+'%';d.style.height=(100/ROWS*.34)+'%';d.style.transform='translate(-50%,-50%)';d.style.zIndex='3';d.style.pointerEvents='none';
     const c=document.createElement('canvas');c.width=MOBILE_PERF?240:768;c.height=MOBILE_PERF?48:112;c.style.width='100%';c.style.height='100%';c.style.display='block';
-    drawCrawlerTrailCanvas(c,z);d.appendChild(c);units.appendChild(d);
+    drawCrawlerTrailCanvas(c,z);d.appendChild(c);frameUnits.appendChild(d);
   }
   for(const b of brainDrops){
     const d=document.createElement('div');d.className='entity brainDrop';
@@ -4501,7 +4534,7 @@ function render(){
       d.style.transform=`translate(-50%,-50%) rotate(${(q*320).toFixed(1)}deg)`;
     }
     d.style.zIndex='19';d.style.pointerEvents='none';
-    d.appendChild(makeCanvas(c=>drawBrainDrop(c,b)));units.appendChild(d);
+    d.appendChild(makeCanvas(c=>drawBrainDrop(c,b)));frameUnits.appendChild(d);
   }
   for(const z of zombies){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
@@ -4545,7 +4578,7 @@ function render(){
       const af=document.createElement('div');af.className='armorHpFill';af.style.height=(Math.max(0,Math.min(1,z.coneHp/z.coneMax))*100)+'%';
       armor.appendChild(af);d.appendChild(armor);
     }
-    units.appendChild(d);
+    frameUnits.appendChild(d);
   }
   for(const fx of armorBreakFx){
     const host=zombies.find(z=>z.id===fx.zombieId&&z.hp>0);
@@ -4556,7 +4589,7 @@ function render(){
       rem.style.left=pctX(bx+.43);rem.style.top=pctY(row+.5-.315);
       rem.style.height=(100/ROWS*.14)+'%';rem.style.opacity=String(1-u/.28);
       rem.style.transform='translate(-50%,-50%) scaleY(1.08)';
-      units.appendChild(rem);
+      frameUnits.appendChild(rem);
     }
     for(let i=0;i<4;i++){
       const q=Math.max(0,(u-.08)/.92), dir=i<2?-1:1, spread=(i%2?1:.55);
@@ -4565,7 +4598,7 @@ function render(){
       shard.style.height=(100/ROWS*(.045+.022*(i%2)))+'%';
       shard.style.opacity=String(Math.max(0,1-q));
       shard.style.transform=`translate(-50%,-50%) translate(${dir*q*(11+9*spread)}px,${(-Math.sin(q*Math.PI)*10+q*q*12+(i-1.5)*2).toFixed(1)}px) rotate(${dir*q*(45+17*i)}deg)`;
-      units.appendChild(shard);
+      frameUnits.appendChild(shard);
     }
   }
   for(const fx of armorHpBreakFx){
@@ -4582,7 +4615,7 @@ function render(){
     piece.style.boxShadow=`inset 1px 0 rgba(155,170,178,${.72*(1-u)}),inset -2px 0 rgba(5,8,10,.65),2px 3px 2px rgba(0,0,0,.28)`;
     piece.style.opacity=String(Math.max(0,1-u));
     piece.style.transform=`translate(-50%,-50%) translate(${(u*27).toFixed(1)}px,${(-u*4).toFixed(1)}px) rotate(${(u*13).toFixed(1)}deg)`;
-    units.appendChild(piece);
+    frameUnits.appendChild(piece);
   }
   for(const fx of hpBreakFx){
     const host=zombies.find(z=>z.id===fx.zombieId&&z.hp>0);
@@ -4603,24 +4636,24 @@ function render(){
     piece.style.transform=fx.fireDamage
       ?`translate(-50%,-50%) translate(${(u*31).toFixed(1)}px,${(-u*15-Math.sin(u*Math.PI)*8).toFixed(1)}px) rotate(${(u*22).toFixed(1)}deg) scale(${(1+u*.18).toFixed(2)})`
       :`translate(-50%,-50%) translateX(${u*18}px)`;
-    units.appendChild(piece);
+    frameUnits.appendChild(piece);
   }
   for(const fx of coneFx){
     const d=document.createElement('div');d.className='entity zombie';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=8;
-    d.appendChild(makeCanvas(c=>fx.kind==='bucket'?drawBucketDrop(c,fx.age,fx.dir):drawConeDrop(c,fx.age,fx.dir)));units.appendChild(d);
+    d.appendChild(makeCanvas(c=>fx.kind==='bucket'?drawBucketDrop(c,fx.age,fx.dir):drawConeDrop(c,fx.age,fx.dir)));frameUnits.appendChild(d);
   }
   for(const fx of blastFx){
     const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=12;
-    d.appendChild(makeCanvas(c=>drawPotatoBlast(c,fx.age)));units.appendChild(d);
+    d.appendChild(makeCanvas(c=>drawPotatoBlast(c,fx.age)));frameUnits.appendChild(d);
   }
   for(const fx of deathFx){
     const d=document.createElement('div');d.className='entity '+((fx.type==='zombie'||fx.type==='brainZombie')?'zombie':'plant');d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);
-    d.appendChild(makeCanvas(c=>fx.type==='brainZombie'?drawBrainZombieDeath(c,fx):(fx.type==='zombie'?drawZombieDeath(c,fx.cone,fx.age):(fx.type==='fireZombie'?drawFireZombieDeath(c,fx):drawPlantDeath(c,fx.plantType,fx.age)))));units.appendChild(d);
+    d.appendChild(makeCanvas(c=>fx.type==='brainZombie'?drawBrainZombieDeath(c,fx):(fx.type==='zombie'?drawZombieDeath(c,fx.cone,fx.age):(fx.type==='fireZombie'?drawFireZombieDeath(c,fx):drawPlantDeath(c,fx.plantType,fx.age)))));frameUnits.appendChild(d);
   }
-  for(const p of peas){const d=document.createElement('div');d.className='entity peaShot';d.style.left=pctX(p.x);d.style.top=pctY(p.y??(p.row+.39));d.appendChild(makeCanvas(c=>drawPeaProjectile(c,p)));units.appendChild(d)}
-  for(const fx of peaImpactFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=11;d.appendChild(makeCanvas(c=>drawPeaImpact(c,fx.age,!!fx.fire)));units.appendChild(d)}
-  for(const fx of bloodFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=12; d.appendChild(makeCanvas(c=>drawBloodBurst(c,fx.age))); units.appendChild(d)}
-  for(const fx of armFx){const d=document.createElement('div');d.className='entity zombie';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=8; d.appendChild(makeCanvas(c=>drawArmDrop(c,fx.age,fx.dir))); units.appendChild(d)}
+  for(const p of peas){const d=document.createElement('div');d.className='entity peaShot';d.style.left=pctX(p.x);d.style.top=pctY(p.y??(p.row+.39));d.appendChild(makeCanvas(c=>drawPeaProjectile(c,p)));frameUnits.appendChild(d)}
+  for(const fx of peaImpactFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=11;d.appendChild(makeCanvas(c=>drawPeaImpact(c,fx.age,!!fx.fire)));frameUnits.appendChild(d)}
+  for(const fx of bloodFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=12; d.appendChild(makeCanvas(c=>drawBloodBurst(c,fx.age))); frameUnits.appendChild(d)}
+  for(const fx of armFx){const d=document.createElement('div');d.className='entity zombie';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=8; d.appendChild(makeCanvas(c=>drawArmDrop(c,fx.age,fx.dir))); frameUnits.appendChild(d)}
   for(const s of suns){
     const d=document.createElement('button');d.type='button';d.className='entity sunOrb';d.dataset.sunId=s.id;d.setAttribute('aria-label','阳光（自动收集）');d.style.left=pctX(s.x);d.style.top=pctY(s.y);
     d.appendChild(cachedCanvas('sun',drawSun));
@@ -4629,8 +4662,9 @@ function render(){
     d.addEventListener('pointerenter',sweepCollect);
     d.addEventListener('pointerdown',sweepCollect);
     d.addEventListener('click',sweepCollect);
-    units.appendChild(d);
+    frameUnits.appendChild(d);
   }
+  units.replaceChildren(frameUnits);
 }
 
 // 手机端手指在棋盘上滑过阳光时收集；不需要抬手或精准点击。
@@ -4645,7 +4679,8 @@ document.addEventListener('pointermove',e=>{
 document.addEventListener('pointerup',e=>{if(sunSweepPointer===e.pointerId)sunSweepPointer=null},{passive:true});
 document.addEventListener('pointercancel',e=>{if(sunSweepPointer===e.pointerId)sunSweepPointer=null},{passive:true});
 
-function updateCooldownUI(){document.querySelectorAll('.tool[data-tool]').forEach(b=>{const t=b.dataset.tool;if(!cooldownMax[t])return;const rem=cooldowns[t]||0,max=cooldownMax[t];b.classList.toggle('cooling',rem>0);b.style.setProperty('--cd-pct',(rem/max*100)+'%');b.dataset.cd=rem>0?(rem<10?rem.toFixed(1):Math.ceil(rem))+'s':''})}
+const cooldownCards=[...document.querySelectorAll('.tool[data-tool]')];
+function updateCooldownUI(){for(const b of cooldownCards){const t=b.dataset.tool;if(!cooldownMax[t])continue;const rem=cooldowns[t]||0,max=cooldownMax[t],cooling=rem>0;const label=cooling?(rem<10?rem.toFixed(1):Math.ceil(rem))+'s':'';const pct=Math.ceil(rem/max*100)+'%';if(b.classList.contains('cooling')!==cooling)b.classList.toggle('cooling',cooling);if(b.dataset.cd!==label)b.dataset.cd=label;if(b.style.getPropertyValue('--cd-pct')!==pct)b.style.setProperty('--cd-pct',pct)}}
 function updateHUD(){sunEl.textContent=Math.floor(sun);killsEl.textContent=`${kills}`}
 function finish(win){
   ended=true;running=false;battleRoot.classList.remove('plantBulletTime');stopBattleBgm();syncGameMusic();toggle.disabled=true;toggle.textContent='战斗结束';
@@ -4996,6 +5031,18 @@ musicMute?.addEventListener('click',async()=>{
 });
 syncMusicSettingsUI();
 settingsGear.addEventListener('click',openSettings);
+const qualityToggle=document.getElementById('qualityToggle');
+function syncQualityToggle(){qualityToggle.textContent='画质：'+({auto:'自动',high:'高清',smooth:'流畅'}[qualityMode]);}
+qualityToggle.addEventListener('click',()=>{
+  qualityMode=qualityMode==='auto'?'high':qualityMode==='high'?'smooth':'auto';
+  MOBILE_RENDER_SCALE=spriteRenderScale();
+  spriteCanvasCache.clear();
+  reusableSpriteCanvases.small.length=0;reusableSpriteCanvases.large.length=0;
+  try{localStorage.setItem(QUALITY_KEY,qualityMode)}catch(e){}
+  syncQualityToggle();
+  if(!battleRoot.classList.contains('out'))render();
+});
+syncQualityToggle();
 settingsResume.addEventListener('click',()=>closeSettings(true));
 settingsRestart.addEventListener('click',()=>{settingsOverlay.classList.remove('show');settingsOverlay.setAttribute('aria-hidden','true');settingsWasRunning=false;reset();});
 settingsMenu.addEventListener('click',()=>{
@@ -5033,6 +5080,8 @@ let lastVisualFrame=0;
 let renderWasActive=true;
 let lastFrameErrorAt=0;
 function frame(now){
+  // High-refresh screens need no more than 100 full game updates per second.
+  if(now-last<10){requestAnimationFrame(frame);return;}
   const dt=Math.min(.04,(now-last)/1000);last=now;
   try{
     update(dt);
