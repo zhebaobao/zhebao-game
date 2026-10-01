@@ -831,7 +831,12 @@ function stopBattleBgm(){if(battleBgm&&!battleBgm.paused)fadeBattleBgm(0,520);}
 function playBossBgm(){
   if(!bossBgm||musicMuted)return;
   if(idleBgm&&!idleBgm.paused)idleBgm.pause();
-  if(battleBgm&&!battleBgm.paused)fadeBattleBgm(0,420);
+  // A fade still leaves the battle track playing for several hundred ms. On
+  // level 10 that overlaps the boss track (and on some browsers keeps both
+  // media decoders busy), so hand the audio bus over atomically.
+  cancelAnimationFrame(battleBgmFadeRAF);
+  battleBgmFadeRAF=0;
+  if(battleBgm){battleBgm.pause();battleBgm.currentTime=0;battleBgm.volume=battleTargetVolume();}
   bossBgm.volume=Math.max(.01,battleTargetVolume());
   if(bossBgm.ended)bossBgm.currentTime=0;
   bossBgm.play().then(()=>{audioUnlocked=true;updateMusicControls();}).catch(()=>{});
@@ -4473,12 +4478,12 @@ function render(){
     let ext=Math.max(0,Math.min(1,r.age/r.extendDur));
     if(r.closing)ext*=Math.max(0,1-r.closeAge/1.25);
     const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(8.75);d.style.top=pctY(2.5);
-    d.style.width=(2.35/COLS*100)+'%';d.style.height=(100/ROWS*3.05)+'%';d.style.zIndex='6';d.style.pointerEvents='none';
-    const c=document.createElement('canvas');c.width=260;c.height=330;c.style.width='100%';c.style.height='100%';drawBossTruck(c,ext);d.appendChild(c);frameUnits.appendChild(d);
+    d.style.width=(2.35/COLS*100)+'%';d.style.height=(100/ROWS*3.05)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
+    const c=document.createElement('canvas');c.width=160;c.height=204;c.style.width='100%';c.style.height='100%';drawBossTruck(c,ext);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===10&&level10Boss){
-    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(8.75);truck.style.top=pctY(2.5);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='6';truck.style.pointerEvents='none';
-    const tc=document.createElement('canvas');tc.width=260;tc.height=330;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc,level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
+    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(8.75);truck.style.top=pctY(2.5);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
+    const tc=document.createElement('canvas');tc.width=160;tc.height=204;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc,level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
   }
   if(currentLevel===7&&level7Event){
     const e=level7Event;
