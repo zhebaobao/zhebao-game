@@ -2371,7 +2371,8 @@ function update(dt){
       }else if(z.type==='giant'){
         z.eating=true;z.smashCooldown=(z.smashCooldown||0)+dt*slowMul;
         z.smashTime=Math.max(0,(z.smashTime||0)-dt);
-        if(z.smashCooldown>=2){
+        // Giant attacks once every 4 seconds: twice the previous 2-second interval.
+        if(z.smashCooldown>=4){
           z.smashCooldown=0;z.smashTime=.92;z.smashPending=true;playSfx('explosion',.72,'giantSmash',120,z.x);
           // Damage lands later, at the visible hand impact frame.
         }
