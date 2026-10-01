@@ -2188,9 +2188,10 @@ function update(dt){
     fx.age+=dt;
     if((fx.type==='zombie'||fx.type==='ashZombie')&&!fx.bloodBurst&&fx.age>=.90){
       fx.bloodBurst=true;
-      // Large world-space droplets escape the 64px corpse canvas, so the spray is unmistakable.
-      const sprays=[[-1.65,-1.72,.105],[-1.30,-2.05,.075],[-1.02,-1.38,.095],[-.72,-2.32,.060],[-.42,-1.62,.072],[.35,-2.20,.090],[.72,-1.58,.110],[1.08,-2.02,.078],[1.42,-1.42,.095],[1.72,-1.78,.070],[-1.86,-.95,.068],[1.92,-1.02,.075],[.10,-2.55,.065],[-.18,-1.08,.12]];
-      sprays.forEach((q,i)=>deathBloodDrops.push({id:nextId++,x:fx.x,y:fx.row+.48,vx:q[0],vy:q[1],size:q[2],age:0,life:1.65,rot:(i*.73)%6.28,spawnRow:fx.row}));
+      // Spray into the corpse lane and both adjacent lanes. The lane offset is
+      // intentional: blood should read as a three-row burst, not a single stripe.
+      const sprays=[[-1.65,-1.72,.046,-1],[-1.30,-2.05,.034,0],[-1.02,-1.38,.058,1],[-.72,-2.32,.028,-1],[-.42,-1.62,.041,0],[.35,-2.20,.052,1],[.72,-1.58,.064,0],[1.08,-2.02,.037,-1],[1.42,-1.42,.049,1],[1.72,-1.78,.031,0],[-1.86,-.95,.036,1],[1.92,-1.02,.040,-1],[.10,-2.55,.030,0],[-.18,-1.08,.070,1]];
+      sprays.forEach((q,i)=>{const lane=Math.max(0,Math.min(ROWS-1,fx.row+q[3]));deathBloodDrops.push({id:nextId++,x:fx.x,y:lane+.48,vx:q[0],vy:q[1],size:q[2]*(.84+((i*17)%7)/20),age:0,life:1.65,rot:(i*.73)%6.28,spawnRow:lane});});
     }
     if((fx.type==='zombie'||fx.type==='ashZombie')&&!fx.bloodLanded&&fx.age>=1.16){fx.bloodLanded=true;}
   }
@@ -2200,7 +2201,7 @@ function update(dt){
     const ground=d.rowGround??(Math.floor(d.y)+.88);
     // Use the corpse lane as the landing plane, not the current falling y.
     const laneGround=(d.spawnRow??Math.max(0,Math.round(d.y-.48)))+.88;
-    if(d.y>=laneGround&&!d.landed){d.landed=true;groundBloodFx.push({id:nextId++,x:d.x,y:laneGround,age:0,life:6.2,size:d.size*1.55,rot:d.rot});}
+    if(d.y>=laneGround&&!d.landed){d.landed=true;groundBloodFx.push({id:nextId++,x:d.x,y:laneGround,age:0,life:6.2,size:d.size*(.82+((d.id*13)%9)/30),rot:d.rot});}
   }
   deathBloodDrops=deathBloodDrops.filter(d=>!d.landed&&d.age<d.life);
   for(const fx of groundBloodFx)fx.age+=dt;
@@ -4171,9 +4172,10 @@ function drawPlantDeath(x,type,t){ const fade=Math.max(0,1-t/.72);x.globalAlpha=
 function drawGroundBlood(x,fx){
   const grow=Math.min(1,fx.age/.58),fade=fx.age>4.1?Math.max(0,1-(fx.age-4.1)/1.1):1;
   const e=1-Math.pow(1-grow,3);x.save();x.globalAlpha=fade;x.translate(32,45);x.rotate(fx.rot||0);
-  x.fillStyle='#5e1119';x.beginPath();x.ellipse(0,0,(6+e*17)*(1+(fx.size||.1)*2.2),(2.2+e*5.2)*(1+(fx.size||.1)*1.4),0,0,Math.PI*2);x.fill();
-  x.fillStyle='#8d1722';x.beginPath();x.ellipse(-3,-1,3+e*9,1.2+e*2.8,.18,0,Math.PI*2);x.fill();
-  x.fillStyle='#b52631';for(const q of [[-17,-5,2.1],[14,-6,1.7],[19,2,1.4],[-21,3,1.3]]){x.beginPath();x.arc(q[0]*e,q[1]*e,q[2],0,Math.PI*2);x.fill();}
+  const scale=.78+(fx.size||.1)*1.35, skew=1+Math.sin((fx.id||1)*2.7)*.12;
+  x.fillStyle='#5e1119';x.beginPath();x.ellipse(0,0,(6+e*17)*scale,(2.2+e*5.2)*scale*skew,0,0,Math.PI*2);x.fill();
+  x.fillStyle='#8d1722';x.beginPath();x.ellipse(-3,-1,(3+e*9)*scale,(1.2+e*2.8)*scale,.18,0,Math.PI*2);x.fill();
+  x.fillStyle='#b52631';for(const q of [[-17,-5,2.1],[14,-6,1.7],[19,2,1.4],[-21,3,1.3]]){x.beginPath();x.arc(q[0]*e,q[1]*e,q[2]*scale,0,Math.PI*2);x.fill();}
   x.restore();
 }
 function drawBloodBurst(x,t){ const u=Math.min(1,t/.35), fade=Math.max(0,1-u); x.globalAlpha=fade; [[30,30],[36,24],[23,35],[40,33],[32,18],[19,28],[44,28]].forEach((b,i)=>R(x,i%2?'#ff6b57':'#b6182d',b[0]+(i-2)*u*8,b[1]-u*8,3+(i%3),3+(i%2))); x.globalAlpha=1; }
@@ -4389,7 +4391,7 @@ function render(){
   // Browser layout work is the current bottleneck; isolate this rapidly changing layer.
   // All children remain absolutely positioned inside the existing battlefield.
   for(const fx of groundBloodFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=3;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>drawGroundBlood(c,fx)));frameUnits.appendChild(d)}
-  for(const b of deathBloodDrops){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(b.x);d.style.top=pctY(b.y);d.style.zIndex=15;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>{c.save();c.translate(32,32);c.rotate(Math.atan2(b.vy,b.vx)+1.57);c.fillStyle='#9f0718';c.beginPath();c.ellipse(0,0,Math.max(2.8,b.size*48),Math.max(6,b.size*82),0,0,Math.PI*2);c.fill();c.fillStyle='#e12b39';c.beginPath();c.ellipse(-1,-2,Math.max(1.2,b.size*18),Math.max(2,b.size*28),0,0,Math.PI*2);c.fill();c.restore();}));frameUnits.appendChild(d)}
+  for(const b of deathBloodDrops){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(b.x);d.style.top=pctY(b.y);d.style.zIndex=15;d.style.pointerEvents='none';d.appendChild(makeCanvas(c=>{c.save();c.translate(32,32);c.rotate(Math.atan2(b.vy,b.vx)+1.57);const scale=.72+((b.id*11)%13)/28;c.fillStyle='#9f0718';c.beginPath();c.ellipse(0,0,Math.max(1.4,b.size*36)*scale,Math.max(3,b.size*62)*scale,0,0,Math.PI*2);c.fill();c.fillStyle='#e12b39';c.beginPath();c.ellipse(-1,-2,Math.max(.7,b.size*13)*scale,Math.max(1.2,b.size*21)*scale,0,0,Math.PI*2);c.fill();c.restore();}));frameUnits.appendChild(d)}
 
   // Fourth-level finale: keep the truck ramp visibly towering over the battlefield.
   if(finalRaidBusy()){
