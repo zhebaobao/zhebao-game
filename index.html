@@ -1117,6 +1117,7 @@ const LEVELS={
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 const TEST_MODE=false;
+const FINAL_TEST_UNLOCK_ALL=true;
 let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=10,bossWrenches=[];
 async function requestGameFullscreen(){
   const el=document.documentElement;
@@ -1131,7 +1132,7 @@ async function requestGameFullscreen(){
 
 const SAVE_KEY='pixelLawnBattle.save.v1';
 function makeSaveData(){return {version:2,completedLevels:[...new Set(completedLevels)].sort((a,b)=>a-b),wallUnlocked,potatoUnlocked,fanUnlocked,lighterUnlocked,magnetUnlocked,crossfanUnlocked,savedAt:new Date().toISOString()}}
-function persistProgress(){if(TEST_MODE)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSaveData()))}catch(e){}}
+function persistProgress(){if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSaveData()))}catch(e){}}
 function normalizeSave(raw){
   const c=[...new Set(Array.isArray(raw?.completedLevels)?raw.completedLevels.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=10):[])].sort((a,b)=>a-b);
   return {version:2,completedLevels:c,
@@ -1146,11 +1147,11 @@ function applySaveData(raw){
   const d=normalizeSave(raw);completedLevels=d.completedLevels;wallUnlocked=d.wallUnlocked;potatoUnlocked=d.potatoUnlocked;fanUnlocked=d.fanUnlocked;lighterUnlocked=d.lighterUnlocked;magnetUnlocked=d.magnetUnlocked;crossfanUnlocked=d.crossfanUnlocked;
   refreshProgressUI();
 }
-function loadLocalProgress(){if(TEST_MODE)return;try{const raw=localStorage.getItem(SAVE_KEY);if(raw)applySaveData(JSON.parse(raw))}catch(e){}}
+function loadLocalProgress(){if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return;try{const raw=localStorage.getItem(SAVE_KEY);if(raw)applySaveData(JSON.parse(raw))}catch(e){}}
 function refreshProgressUI(){
   const numerals=['','一','二','三','四','五','六','七','八','九','十'];
   document.querySelectorAll('.levelCard').forEach(b=>{
-    const n=+b.dataset.level,done=completedLevels.includes(n),open=n===1||completedLevels.includes(n-1);
+    const n=+b.dataset.level,done=completedLevels.includes(n),open=FINAL_TEST_UNLOCK_ALL||n===1||completedLevels.includes(n-1);
     b.classList.toggle('done',done);b.classList.toggle('locked',!open);b.disabled=!open;
     const no=b.querySelector('.levelNo');if(no)no.textContent=open?`第${numerals[n]}关`:'？';
     for(const el of b.children)if(!el.classList.contains('levelNo'))el.style.display=open?'':'none';
@@ -1356,7 +1357,7 @@ function waveProgress(){
   // Level 10 has three paced ground waves followed by the truck's 18 releases.
   // Keep the progress meter tied to those two phases instead of jumping to the
   // final flag as soon as the boss starts emitting.
-  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,.75+released/12*.25):Math.min(.75,spawned/Math.max(1,level10IntroTarget)*.75);}
+  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,.75+released/5*.25):Math.min(.75,spawned/Math.max(1,level10IntroTarget)*.75);}
   const cfg=LEVELS[currentLevel];return cfg.total?Math.min(1,spawned/cfg.total):0;
 }
 function waveStage(){if(currentLevel===7&&level7Event)return level7Event.wave-1;if(currentLevel===10)return level10Boss?3:Math.min(2,Math.floor(waveProgress()*4));return Math.min(3,Math.floor(waveProgress()*4));}
@@ -1366,7 +1367,7 @@ function updateWaveUI(){
   if(!waveFill)return;
   const p=waveProgress();
   const stage=currentLevel===8?Math.min(3,Math.floor(p*3)+1):(currentLevel===10?(level10Boss?4:Math.min(3,Math.floor(p*4)+1)):(currentLevel===7&&level7Event?level7Event.wave:Math.min(4,Math.floor(p*4)+1)));
-  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='intermission'?`工头出击 · ${Math.max(0,Math.ceil(20-(level10Boss.intermissionAge||0)))}秒`:(level10Boss.phase==='release'?'每批装卸 5 只':(level10Boss.phase==='finalStand'?'最终决战':'战车突袭'))):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
+  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='intermission'?`工头出击 · ${Math.max(0,Math.ceil(20-(level10Boss.intermissionAge||0)))}秒`:(level10Boss.phase==='release'?(level10Boss.releasePaused?'场上僵尸超过 10 只 · 暂停装卸':'每批装卸 5 只 · 无限循环'):'战车突袭')):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
   const surge=(finalRaidBusy()||waveBurstRemaining>0)&&wavePulseTimer>0;
   const key=[currentLevel,p,stage,state,surge].join('|');
   if(key===lastWaveUIKey)return;
@@ -1624,14 +1625,22 @@ function updateLevel10(dt){
   updateBossPresentation();
   if(e.phase==='bossReveal'&&e.hudAge<2.45)return;
   if(e.phase==='bossReveal'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
-  if(e.phase==='release'&&e.emitted<15){
-    e.releaseClock-=dt;
-    if(e.releaseClock<=0){
-      const types=['crawler','normal','cone','crawler','brain','normal'];
-      const type=types[e.emitted%types.length],truckRows=[1,2,3],row=truckRows[e.emitted%truckRows.length];
-      const z=makeZombie(type,row,10.35);z.bossSlide=makeCargoSlide(10.35,5.05);z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;e.groupReleased++;spawned++;e.releaseClock=1.15;
-      playSfx('metalHit',.6,'bossDrop',100,8.8);
-      if(e.groupReleased>=5||e.emitted>=15){e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;e.jumpLanded=false;e.jumpReturned=false;say('工头从车厢跳下，走到战车前方准备投掷扳手！');}
+  if(e.phase==='release'){
+    const activeMinions=zombies.filter(z=>z.hp>0&&z.type!=='workboss').length;
+    if(e.groupReleased===0&&activeMinions>10){
+      e.releasePaused=true;e.releaseClock=.55;
+    }else{
+      e.releasePaused=false;e.releaseClock-=dt;
+      if(e.releaseClock<=0){
+        const types=['crawler','normal','cone','crawler','brain','normal'];
+        const type=types[e.emitted%types.length],truckRows=[1,2,3],row=truckRows[e.emitted%truckRows.length];
+        const z=makeZombie(type,row,10.35);z.bossSlide=makeCargoSlide(10.35,5.05);z.hitStun=0;z.hurt=0;zombies.push(z);
+        e.emitted++;e.groupReleased++;spawned++;e.releaseClock=1.15;playSfx('metalHit',.6,'bossDrop',100,8.8);
+        if(e.groupReleased>=5){
+          e.phase='intermission';e.intermissionAge=0;e.attackStep=0;e.target=null;e.jumpLanded=false;e.jumpReturned=false;
+          say('本批 5 只僵尸装卸完成——工头从车厢跳下准备投掷扳手！');
+        }
+      }
     }
   }
   if(e.phase==='intermission'){
@@ -1662,8 +1671,8 @@ function updateLevel10(dt){
     if(e.attackStep===2&&e.intermissionAge>=backStart){e.target=null;e.attackStep=3;}
     if(e.intermissionAge>=20){
       e.groupReleased=0;e.releaseClock=0;e.intermissionAge=0;e.attackStep=0;
-      if(e.emitted>=15){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.bossAirY=0;boss.bossJumpTilt=0;boss.teleportFx=.65;say('装卸结束——工头再次跳下车，留在草坪上进行最终决战！');}
-      else e.phase='release';
+      e.phase='release';e.releasePaused=false;
+      say('工头回到车上；场上僵尸不超过 10 只时，将继续装卸下一批。');
     }
   }
 }
@@ -5174,7 +5183,7 @@ const cooldownCards=[...document.querySelectorAll('.tool[data-tool]')];
 function updateCooldownUI(){for(const b of cooldownCards){const t=b.dataset.tool;if(!cooldownMax[t])continue;const rem=cooldowns[t]||0,max=cooldownMax[t],cooling=rem>0;const label=cooling?(rem<10?rem.toFixed(1):Math.ceil(rem))+'s':'';const pct=Math.ceil(rem/max*100)+'%';if(b.classList.contains('cooling')!==cooling)b.classList.toggle('cooling',cooling);if(b.dataset.cd!==label)b.dataset.cd=label;if(b.style.getPropertyValue('--cd-pct')!==pct)b.style.setProperty('--cd-pct',pct)}}
 function updateHUD(){sunEl.textContent=Math.floor(sun);killsEl.textContent=`${kills}`}
 const LEVEL_PLANT_REWARDS={1:'wall',2:'potato',3:'fan',4:'lighter',5:'magnet',6:'crossfan'};
-function isPlantUnlocked(t){return t==='pea'||t==='sunflower'||(t==='wall'&&wallUnlocked)||(t==='potato'&&potatoUnlocked)||(t==='fan'&&fanUnlocked)||(t==='lighter'&&lighterUnlocked)||(t==='magnet'&&magnetUnlocked)||(t==='crossfan'&&crossfanUnlocked)}
+function isPlantUnlocked(t){if(FINAL_TEST_UNLOCK_ALL)return true;return t==='pea'||t==='sunflower'||(t==='wall'&&wallUnlocked)||(t==='potato'&&potatoUnlocked)||(t==='fan'&&fanUnlocked)||(t==='lighter'&&lighterUnlocked)||(t==='magnet'&&magnetUnlocked)||(t==='crossfan'&&crossfanUnlocked)}
 function finish(win){
   ended=true;running=false;battleRoot.classList.remove('plantBulletTime');stopBattleBgm();syncGameMusic();toggle.disabled=true;toggle.textContent='战斗结束';
   if(!win){playSfx('lose',1.15,'finish',1000);say('防线被突破，你被感染了。');showInfection();return}
@@ -5348,6 +5357,7 @@ function plantPortraitSrc(t){
   return '';
 }
 function availablePlantsForLevel(n){
+  if(FINAL_TEST_UNLOCK_ALL)return ['pea','sunflower','wall','potato','fan','lighter','magnet','crossfan'];
   const base=['pea','sunflower'];
   if(wallUnlocked)base.push('wall');
   if(potatoUnlocked)base.push('potato');
@@ -5437,7 +5447,7 @@ const dexEntries=[
 ];
 function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else drawZombie(ctx,id==='cone',(t*.7)%1,null,false,false,0,0)}
 function isDexUnlocked(id){
-  if(TEST_MODE)return true;
+  if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return true;
   if(id==='pea'||id==='sunflower')return true;
   if(id==='lighter')return lighterUnlocked;
   if(id==='wall')return wallUnlocked;
