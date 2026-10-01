@@ -4362,16 +4362,43 @@ peaProjectileSheet.decoding='async';
 peaProjectileSheet.src='assets/pea-projectile-sheet.png';
 const PEA_FLIGHT_FRAMES=12,PEA_IMPACT_FRAMES=5,PEA_TOTAL_FRAMES=17;
 const peaFrameCache={green:[],fire:[]};
+let peaSpriteMetrics=null;
+function preparePeaSpriteMetrics(){
+  if(peaSpriteMetrics||!peaProjectileSheet.complete||!peaProjectileSheet.naturalWidth)return peaSpriteMetrics;
+  const sw=peaProjectileSheet.naturalWidth/PEA_TOTAL_FRAMES,sh=peaProjectileSheet.naturalHeight,bounds=[];
+  let flightW=1,flightH=1,impactW=1,impactH=1;
+  for(let frame=0;frame<PEA_TOTAL_FRAMES;frame++){
+    const scan=document.createElement('canvas');scan.width=Math.max(1,Math.ceil(sw));scan.height=sh;
+    const sg=scan.getContext('2d',{willReadFrequently:true});sg.imageSmoothingEnabled=false;
+    sg.drawImage(peaProjectileSheet,frame*sw,0,sw,sh,0,0,scan.width,scan.height);
+    const data=sg.getImageData(0,0,scan.width,scan.height).data;
+    let minX=scan.width,minY=scan.height,maxX=-1,maxY=-1;
+    for(let y=0;y<scan.height;y++)for(let x=0;x<scan.width;x++){
+      if(data[(y*scan.width+x)*4+3]>12){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+    }
+    if(maxX<minX){minX=0;minY=0;maxX=scan.width-1;maxY=scan.height-1;}
+    const box={x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};
+    bounds.push(box);
+    if(frame<PEA_FLIGHT_FRAMES){flightW=Math.max(flightW,box.w);flightH=Math.max(flightH,box.h);}
+    else{impactW=Math.max(impactW,box.w);impactH=Math.max(impactH,box.h);}
+  }
+  // Size the painted pixels, not the transparent source cell. This preserves the
+  // artist's relative frame sizes while making the projectile readable on the lawn.
+  peaSpriteMetrics={sw,sh,bounds,flightScale:Math.min(50/flightW,40/flightH),impactScale:Math.min(57/impactW,54/impactH)};
+  return peaSpriteMetrics;
+}
 function getPeaSpriteFrame(frame,fire=false){
   if(!peaProjectileSheet.complete||!peaProjectileSheet.naturalWidth)return null;
   frame=Math.max(0,Math.min(PEA_TOTAL_FRAMES-1,frame|0));
   const bank=fire?peaFrameCache.fire:peaFrameCache.green;
   if(bank[frame])return bank[frame];
+  const metrics=preparePeaSpriteMetrics();if(!metrics)return null;
+  const box=metrics.bounds[frame],scale=frame<PEA_FLIGHT_FRAMES?metrics.flightScale:metrics.impactScale;
+  const dw=Math.max(2,Math.round(box.w*scale)),dh=Math.max(2,Math.round(box.h*scale));
+  const centerX=frame<PEA_FLIGHT_FRAMES?34:32;
   const c=document.createElement('canvas'),g=c.getContext('2d',{willReadFrequently:fire});
   c.width=c.height=64;g.imageSmoothingEnabled=false;
-  const sw=peaProjectileSheet.naturalWidth/PEA_TOTAL_FRAMES,sh=peaProjectileSheet.naturalHeight;
-  const scale=Math.min(58/sw,58/sh),dw=Math.max(1,Math.round(sw*scale)),dh=Math.max(1,Math.round(sh*scale));
-  g.drawImage(peaProjectileSheet,frame*sw,0,sw,sh,Math.round((64-dw)/2),Math.round((64-dh)/2),dw,dh);
+  g.drawImage(peaProjectileSheet,frame*metrics.sw+box.x,box.y,box.w,box.h,Math.round(centerX-dw/2),Math.round(32-dh/2),dw,dh);
   if(fire){
     const im=g.getImageData(0,0,64,64),d=im.data;
     for(let i=0;i<d.length;i+=4){
