@@ -1937,7 +1937,8 @@ function damageZombie(z,dmg,source=null,isFireDamage=false){
   else if((source==='pea'||source==='firePea')&&bodyLost>0)playSfx('fleshHit',1,'fleshHit',38,z.x);
   if(z.type!=='giant'&&!z.armGone && z.hp<=z.maxHp*0.5){z.armGone=true;armFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:-1});}
   if(z.hp<=0&&source)z.deathSource=source;
-  const stunHit=(source==='pea'||source==='firePea')&&z.type!=='giant'&&z.type!=='workboss';
+  // Crawlers stay planted low to the ground: pea hits damage them but never stagger or knock them back.
+  const stunHit=(source==='pea'||source==='firePea')&&z.type!=='giant'&&z.type!=='workboss'&&z.type!=='crawler';
   if(stunHit){
     // Pea impact keeps the full 0.4 s stagger and also knocks the zombie
     // one eighth of a lawn cell away from the plants (to the right).
