@@ -1609,7 +1609,7 @@ function addDeathFx(z){if(z.type==='brain'){
   brainDrops.push({id:nextId++,x:z.x+.20,row:z.row,y:z.row+.54,eaterId:null,done:false,landed:false,landingAge:0,landingDelay:1.16,groundAge:0,groundLife:30,landGrace:.55});
   deathFx.push({id:nextId++,type:'brainZombie',zombieType:'brain',x:z.x,y:z.row+.5,row:z.row,age:0,life:1.55,brainSpawned:true});
   return;
-}const burned=['fire','firePea','firePeaBurn','lavaWall'].includes(z.deathSource);playSfx(burned?'fireDeath':'zombieDeath',1,'death',55,z.x);deathFx.push({id:nextId++,type:burned?'fireZombie':'zombie',zombieType:z.type,x:z.x,y:z.row+.5,row:z.row,cone:z.coneHp>0,age:0,life:burned?1.82:1.72,seed:(z.id*37)%97,bloodLanded:false,bloodBurst:false})}
+}const burned=['fire','firePea','firePeaBurn','lavaWall','crossFire'].includes(z.deathSource),ashed=z.deathSource==='potato';playSfx(burned?'fireDeath':'zombieDeath',1,'death',55,z.x);deathFx.push({id:nextId++,type:burned?'fireZombie':(ashed?'ashZombie':'zombie'),zombieType:z.type,x:z.x,y:z.row+.5,row:z.row,cone:z.coneHp>0,age:0,life:burned?1.82:(ashed?1.9:1.72),seed:(z.id*37)%97,bloodLanded:false,bloodBurst:false})}
 function addPlantDeathFx(p){playSfx('plantDeath',1,'plantDeath',80,p.col+.5);deathFx.push({id:nextId++,type:'plant',plantType:p.type,x:p.col+.5,y:p.row+.5,age:0,life:.72})}
 function dropCone(z){playSfx('armorBreak',1,'armorBreak',70,z.x);coneFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:Math.random()<.5?-1:1,kind:z.type==='bucket'?'bucket':'cone'})}
 function damageZombie(z,dmg,source=null,isFireDamage=false){
@@ -1816,7 +1816,7 @@ function update(dt){
         const target=zombies.find(z=>z.row===p.row&&z.hp>0&&Math.abs(z.x-(p.col+.5))<.68);
         if(target){
           p.detonated=true;playSfx('explosion',1.25,'explosion',180,p.col+.5);blastFx.push({id:nextId++,x:p.col+.5,y:p.row+.5,age:0,life:1.9});
-          for(const z of zombies.filter(z=>z.row===p.row&&Math.abs(z.x-(p.col+.5))<.72&&z.hp>0)) damageZombie(z,500);
+          for(const z of zombies.filter(z=>z.row===p.row&&Math.abs(z.x-(p.col+.5))<.72&&z.hp>0)) damageZombie(z,500,'potato');
           p.hp=0;
         }
       }
@@ -2186,13 +2186,13 @@ function update(dt){
 
   for(const fx of deathFx){
     fx.age+=dt;
-    if(fx.type==='zombie'&&!fx.bloodBurst&&fx.age>=.90){
+    if((fx.type==='zombie'||fx.type==='ashZombie')&&!fx.bloodBurst&&fx.age>=.90){
       fx.bloodBurst=true;
       // Large world-space droplets escape the 64px corpse canvas, so the spray is unmistakable.
       const sprays=[[-1.65,-1.72,.105],[-1.30,-2.05,.075],[-1.02,-1.38,.095],[-.72,-2.32,.060],[-.42,-1.62,.072],[.35,-2.20,.090],[.72,-1.58,.110],[1.08,-2.02,.078],[1.42,-1.42,.095],[1.72,-1.78,.070],[-1.86,-.95,.068],[1.92,-1.02,.075],[.10,-2.55,.065],[-.18,-1.08,.12]];
       sprays.forEach((q,i)=>deathBloodDrops.push({id:nextId++,x:fx.x,y:fx.row+.48,vx:q[0],vy:q[1],size:q[2],age:0,life:1.65,rot:(i*.73)%6.28,spawnRow:fx.row}));
     }
-    if(fx.type==='zombie'&&!fx.bloodLanded&&fx.age>=1.16){fx.bloodLanded=true;}
+    if((fx.type==='zombie'||fx.type==='ashZombie')&&!fx.bloodLanded&&fx.age>=1.16){fx.bloodLanded=true;}
   }
   deathFx=deathFx.filter(fx=>fx.age<fx.life);
   for(const d of deathBloodDrops){
@@ -2702,7 +2702,8 @@ function drawPotato(x,f=0,p={armed:false,arm:0},damaged=false){
   const arm=Math.max(0,p.arm||0),armed=!!p.armed;
   const rise=armed?1:Math.max(0,Math.min(1,(arm-3.6)/2.4));
   const ease=rise*rise*(3-2*rise), bob=armed?Math.sin(gameTime*3.2+(p.id||0))*.45:0;
-  const cy=52-ease*19+bob;
+  // Once armed, the tuber settles into the soil instead of hovering above it.
+  const cy=52-ease*19+(armed?3:0)+bob;
   x.save();
 
   // Thick broken soil ring makes it read as something buried in the lawn.
@@ -2723,6 +2724,10 @@ function drawPotato(x,f=0,p={armed:false,arm:0},damaged=false){
     // Potato dimples and earthy shading.
     x.fillStyle='rgba(105,66,31,.34)';
     for(const [dx,dy,rx,ry] of [[23,-8,2.2,1.4],[40,-5,2.6,1.5],[19,3,2,1.3],[43,5,2.2,1.3],[33,-12,1.6,1.1]]){x.beginPath();x.ellipse(dx,cy+dy,rx,ry,-.2,0,Math.PI*2);x.fill();}
+    x.strokeStyle='rgba(92,53,25,.72)';x.lineWidth=.8;
+    for(const [sx,sy,ex,ey] of [[18,-12,22,-14],[27,8,24,10],[37,-10,41,-12],[44,1,47,3],[20,-1,17,1]]){x.beginPath();x.moveTo(sx,cy+sy);x.quadraticCurveTo((sx+ex)/2-1,cy+(sy+ey)/2+1,ex,cy+ey);x.stroke();}
+    x.fillStyle='rgba(239,191,111,.48)';
+    for(const [hx,hy] of [[20,-6],[36,-8],[45,7],[27,4]]){x.beginPath();x.arc(hx,cy+hy,.7,0,Math.PI*2);x.fill();}
 
     // Large glossy alert eyes + small buck tooth are the key face read.
     x.fillStyle='#171617';x.beginPath();x.ellipse(25.5,cy-1,3.8,5.0,-.12,0,Math.PI*2);x.ellipse(39.2,cy-1,3.8,5.0,.12,0,Math.PI*2);x.fill();
@@ -4138,6 +4143,21 @@ function drawZombieDeath(x,cone,t){
     x.restore();
   }
 }
+function drawAshZombieDeath(x,fx){
+  // Potato mines still throw the same satisfying blood spray, then the body
+  // collapses into dry gray ash instead of using the ordinary death silhouette.
+  drawZombieDeath(x,fx.cone,fx.age);
+  const u=Math.max(0,Math.min(1,(fx.age-.28)/1.62)),fade=Math.max(0,1-u);
+  x.save();x.globalAlpha=.72*fade;
+  for(let i=0;i<26;i++){
+    const seed=(fx.seed||1)+i*17, q=((seed*13)%101)/100, q2=((seed*29)%97)/96;
+    const drift=(q-.5)*(8+u*38), lift=Math.sin(u*Math.PI)*(4+q2*12)+u*9;
+    const size=.7+(i%4)*.42;
+    x.fillStyle=i%3?'#77766b':'#b2aa91';
+    x.save();x.translate(32+drift,42-lift+q2*12);x.rotate(u*4+i*.7);x.fillRect(-size,-size*.55,size*2,size);x.restore();
+  }
+  x.restore();
+}
 function drawBucketDrop(x,t,dir){
   const u=Math.min(1,t/.9),fade=Math.max(0,1-u),cx=31+dir*u*25,cy=14-u*20+u*u*45;
   x.save();x.globalAlpha=fade;x.translate(cx,cy);x.rotate(dir*u*2.8);
@@ -4670,7 +4690,7 @@ function render(){
   }
   for(const fx of deathFx){
     const d=document.createElement('div');d.className='entity '+((fx.type==='zombie'||fx.type==='brainZombie')?'zombie':'plant');d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);
-    d.appendChild(makeCanvas(c=>fx.type==='brainZombie'?drawBrainZombieDeath(c,fx):(fx.type==='zombie'?drawZombieDeath(c,fx.cone,fx.age):(fx.type==='fireZombie'?drawFireZombieDeath(c,fx):drawPlantDeath(c,fx.plantType,fx.age)))));frameUnits.appendChild(d);
+    d.appendChild(makeCanvas(c=>fx.type==='brainZombie'?drawBrainZombieDeath(c,fx):(fx.type==='zombie'?drawZombieDeath(c,fx.cone,fx.age):(fx.type==='ashZombie'?drawAshZombieDeath(c,fx):(fx.type==='fireZombie'?drawFireZombieDeath(c,fx):drawPlantDeath(c,fx.plantType,fx.age))))));frameUnits.appendChild(d);
   }
   for(const p of peas){const d=document.createElement('div');d.className='entity peaShot';d.style.left=pctX(p.x);d.style.top=pctY(p.y??(p.row+.39));d.appendChild(makeCanvas(c=>drawPeaProjectile(c,p)));frameUnits.appendChild(d)}
   for(const fx of peaImpactFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=11;d.appendChild(makeCanvas(c=>drawPeaImpact(c,fx.age,!!fx.fire)));frameUnits.appendChild(d)}
