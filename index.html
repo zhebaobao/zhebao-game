@@ -1117,7 +1117,7 @@ const LEVELS={
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,magnetUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 const TEST_MODE=true;
-let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=10;
+let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=10,bossWrenches=[];
 async function requestGameFullscreen(){
   const el=document.documentElement;
   if(document.fullscreenElement||document.webkitFullscreenElement)return true;
@@ -1377,6 +1377,31 @@ function startLevel4FinalRaid(){
   waveBurstRemaining=0;spawned=LEVELS[4].total;
   say('最后一波！右侧卸货板正在伸入草坪——准备迎接大举突袭！');
 }
+function throwBossWrench(boss,target){
+  if(!boss||!target)return;
+  boss.throwTime=.92;boss.throwTargetRow=target.row;
+  bossWrenches.push({id:nextId++,bossId:boss.id,targetId:target.id,startX:boss.x-.28,startY:boss.row+.23,targetX:target.col+.5,targetY:target.row+.47,x:boss.x-.28,y:boss.row+.23,age:0,dur:1.12,angle:-.7,hit:false,impactAge:0});
+  playSfx('metalBuild',.72,'wrenchThrow',90,boss.x);
+}
+function updateBossWrenches(dt){
+  for(const w of bossWrenches){
+    if(!w.hit){
+      w.age+=dt;const q=Math.min(1,w.age/w.dur),e=q*q*(3-2*q);
+      w.x=w.startX+(w.targetX-w.startX)*e;
+      w.y=w.startY+(w.targetY-w.startY)*e-1.28*Math.sin(q*Math.PI);
+      w.angle=-.7+q*Math.PI*7.5;
+      if(q>=1){
+        w.hit=true;w.impactAge=0;w.x=w.targetX;w.y=w.targetY;
+        const target=plants.find(p=>p.id===w.targetId&&p.hp>0);
+        if(target){damagePlant(target,target.hp+1);target.bumpTime=.55;}
+        playSfx('metalHit',1.18,'bossWrenchImpact',80,w.targetX);
+        blastFx.push({id:nextId++,x:w.targetX,y:w.targetY,age:0,life:.42,kind:'wrench'});
+        battleRoot.animate([{transform:'translate(0,0)'},{transform:'translate(-4px,2px)'},{transform:'translate(4px,-2px)'},{transform:'translate(0,0)'}],{duration:180,iterations:1});
+      }
+    }else w.impactAge+=dt;
+  }
+  bossWrenches=bossWrenches.filter(w=>!w.hit||w.impactAge<.34);
+}
 function makeCargoSlide(start,end){return {phase:'dive',age:0,phaseAge:0,diveDur:1.02,start,end,y:-.16,vy:0,angle:-48,bounceCount:0,impactPulse:0};}
 function updateCargoSlide(z,dt){
  const s=z.bossSlide;if(!s)return false;s.age+=dt;s.phaseAge+=dt;s.impactPulse=Math.max(0,(s.impactPulse||0)-dt);
@@ -1576,7 +1601,7 @@ function updateLevel10(dt){
   const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);
   if(!e.bossSpawned){updateBossPresentation();return;}
   if(!boss){e.phase='defeated';e.emitted=12;spawned=Math.max(spawned,LEVELS[10].total);updateBossPresentation();return;}
-  e.hudAge+=dt;boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);boss.bossHitFx=Math.max(0,(boss.bossHitFx||0)-dt);
+  e.hudAge+=dt;boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);boss.throwTime=Math.max(0,(boss.throwTime||0)-dt);boss.bossHitFx=Math.max(0,(boss.bossHitFx||0)-dt);
   updateBossPresentation();
   if(e.phase==='bossReveal'&&e.hudAge<2.45)return;
   if(e.phase==='bossReveal'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
@@ -1597,11 +1622,11 @@ function updateLevel10(dt){
       const fallback=plants.filter(p=>p.hp>0&&p.type!=='crossfan');
       const pool=candidates.length?candidates:fallback,target=pool[Math.floor(Math.random()*pool.length)]||null;
       e.target=target;
-      if(target){boss.row=target.row;boss.x=Math.min(8.35,target.col+1.12);boss.teleportFx=.55;boss.smashTime=.78;e.lastTargetId=target.id;damagePlant(target,target.hp+1);target.bumpTime=.55;playSfx('metalHit',1.1,'bossWrench',100,target.col+.5);say('工头闪到植物旁，用扳手一击砸毁目标！');}
+      if(target){e.lastTargetId=target.id;throwBossWrench(boss,target);say('工头瞄准植物，抡圆扳手投掷出去！');}
     };
     if(e.attackStep===0&&e.intermissionAge>=.38){strike();e.attackStep=1;}
     if(e.attackStep===1&&e.intermissionAge>=9.15){strike();e.attackStep=2;}
-    if(e.attackStep===2&&e.intermissionAge>=17.35){boss.row=2;boss.x=8.65;boss.teleportFx=.65;e.target=null;e.attackStep=3;say('工头闪回车厢，下一批僵尸即将装卸。');}
+    if(e.attackStep===2&&e.intermissionAge>=17.35){boss.row=2;boss.x=8.65;e.target=null;e.attackStep=3;say('工头收回架势，下一批僵尸即将装卸。');}
     if(e.intermissionAge>=20){
       e.groupReleased=0;e.releaseClock=0;e.intermissionAge=0;e.attackStep=0;
       if(e.emitted>=12){e.phase='finalStand';boss.row=2;boss.x=7.55;boss.teleportFx=.65;say('装卸结束——工头留在草坪上，集中火力击败他！');}
@@ -1892,6 +1917,7 @@ function update(dt){
   updateLevel4FinalRaid(dt);
   updateLevel7(dt);
   updateLevel10(dt);
+  updateBossWrenches(dt);
   const level10Prelude=currentLevel===10&&!level10Boss&&spawned<level10IntroTarget;
   if(currentLevel!==7&&!finalRaidBusy()&&(currentLevel!==10||level10Prelude)&&spawned<LEVELS[currentLevel].total&&spawnClock>=nextSpawnDelay){spawnClock=0;if(currentLevel===8)armLevel8FlagIfNeeded();if(currentLevel===9)armLevel9MinerSpawns();spawnZombie()}
   if(currentLevel===5&&waveStage()>=2&&spawned<LEVELS[currentLevel].total&&impSpawnClock>=nextImpSpawnDelay)forceSpawnImp();
@@ -4526,24 +4552,63 @@ function drawCrawlerTrailCanvas(canvas,z){
   // Far end is organic now—no artificial stake/pin.
   c.fillStyle='#6d2029';c.beginPath();c.ellipse(w-7,h*.58,Math.max(4,h*.10),Math.max(3,h*.08),.3,0,Math.PI*2);c.fill();
 }
+function drawThrownWrench(c,w){
+  const u=Math.min(1,w.age/w.dur);c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();c.translate(c.canvas.width/2,c.canvas.height/2);
+  if(!w.hit){
+    c.rotate(w.angle);
+    c.globalAlpha=.16;c.strokeStyle='#e4e0d6';c.lineWidth=5;for(let i=1;i<=3;i++){c.beginPath();c.arc(0,0,20+i*4,-1.5,-.2);c.stroke();}
+    c.globalAlpha=1;
+  }else c.rotate(-.35);
+  c.scale(c.canvas.width/96,c.canvas.height/96);
+  c.strokeStyle='#211d19';c.lineWidth=7;c.lineCap='round';c.beginPath();c.moveTo(-23,0);c.lineTo(20,0);c.stroke();
+  c.strokeStyle='#8e897f';c.lineWidth=4;c.beginPath();c.moveTo(-23,0);c.lineTo(20,0);c.stroke();
+  c.fillStyle='#494640';c.strokeStyle='#171513';c.lineWidth=4;c.beginPath();c.arc(-29,0,11,.45,Math.PI*1.55);c.lineTo(-25,0);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#6f6a61';c.beginPath();c.arc(25,0,8,0,Math.PI*2);c.fill();c.strokeStyle='#191715';c.lineWidth=3;c.stroke();c.fillStyle='#171513';c.beginPath();c.arc(25,0,3.2,0,Math.PI*2);c.fill();
+  c.strokeStyle='#b8b2a6';c.lineWidth=1.5;c.beginPath();c.moveTo(-19,-2);c.lineTo(18,-2);c.stroke();
+  if(w.hit){const a=Math.max(0,1-w.impactAge/.34);c.globalAlpha=a;for(let i=0;i<8;i++){const ang=i*.82-.35,len=17+(i%3)*6;c.strokeStyle=i%2?'#ffd74a':'#f29227';c.lineWidth=2.4;c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(ang)*len,Math.sin(ang)*len);c.stroke();}}
+  c.restore();
+}
 function drawWorkBoss(c,z){
-  const w=c.canvas.width,h=c.canvas.height,t=gameTime,step=Math.sin(t*4.2),smashing=(z.smashTime||0)>0;
-  const smashQ=smashing?1-Math.min(1,z.smashTime/.78):0,swing=smashQ<.42?smashQ/.42:1-Math.min(1,(smashQ-.42)/.58)*.18;
-  c.save();c.clearRect(0,0,w,h);c.translate(w*.5,h*.5);c.scale(w/150,h/180);
-  if((z.teleportFx||0)>0){const u=1-z.teleportFx/.65;c.strokeStyle=`rgba(116,225,255,${Math.max(0,1-u)})`;c.lineWidth=5;c.beginPath();c.ellipse(0,4,35+u*24,72-u*20,0,0,Math.PI*2);c.stroke();c.fillStyle=`rgba(174,244,255,${Math.max(0,.22-u*.2)})`;c.fillRect(-43,-72,86,142);}
-  c.fillStyle='#111719';c.beginPath();c.ellipse(0,62,32,9,0,0,Math.PI*2);c.fill();
-  c.strokeStyle='#252d2d';c.lineWidth=14;c.lineCap='round';c.beginPath();c.moveTo(-12,27);c.lineTo(-17,64+step*2);c.moveTo(12,27);c.lineTo(17,64-step*2);c.stroke();
-  c.fillStyle='#d18b35';c.strokeStyle='#49301c';c.lineWidth=3;c.beginPath();c.roundRect(-28,-8,56,65,7);c.fill();c.stroke();
-  c.fillStyle='#e5ad4e';c.fillRect(-22,1,44,42);c.strokeStyle='#725026';c.lineWidth=2;c.strokeRect(-22,1,44,42);
-  c.strokeStyle='#4a3725';c.lineWidth=5;c.beginPath();c.moveTo(-16,4);c.lineTo(-16,38);c.moveTo(16,4);c.lineTo(16,38);c.stroke();
-  const frontX=smashing?-44-swing*10:-43-step*2,frontY=smashing?-12+swing*52:25+step*3;
-  c.strokeStyle='#8f9c67';c.lineWidth=10;c.beginPath();c.moveTo(-25,3);c.lineTo(frontX,frontY);c.moveTo(25,3);c.lineTo(42,24-step*2);c.stroke();
-  // Oversized steel wrench stays attached to the leading hand throughout the swing.
-  c.save();c.translate(frontX,frontY);c.rotate(smashing?(-1.15+swing*1.65):-.42);c.strokeStyle='#30383b';c.lineWidth=7;c.beginPath();c.moveTo(0,0);c.lineTo(-2,-39);c.stroke();c.strokeStyle='#9ba7aa';c.lineWidth=3;c.beginPath();c.moveTo(0,0);c.lineTo(-2,-39);c.stroke();c.fillStyle='#596469';c.beginPath();c.arc(-2,-44,10,.35,Math.PI*1.65);c.lineTo(-2,-44);c.closePath();c.fill();c.restore();
-  c.fillStyle='#78855b';c.fillRect(-13,-29,26,21);c.fillStyle='#98a56c';c.strokeStyle='#3e472f';c.lineWidth=3;c.beginPath();c.ellipse(0,-42,21,23,0,0,Math.PI*2);c.fill();c.stroke();
-  c.fillStyle='#151b1c';c.fillRect(-23,-52,46,7);c.fillStyle='#8dd4df';c.fillRect(-15,-46,11,7);c.fillRect(4,-46,11,7);c.strokeStyle='#151c1e';c.lineWidth=3;c.strokeRect(-15,-46,11,7);c.strokeRect(4,-46,11,7);
-  c.strokeStyle='#30383b';c.lineWidth=4;c.beginPath();c.moveTo(17,-27);c.lineTo(26,-20);c.lineTo(20,-13);c.stroke();
-  if((z.bossHitFx||0)>0){const a=Math.min(.72,z.bossHitFx/.24*.72);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(-75,-90,150,180);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
+  const w=c.canvas.width,h=c.canvas.height,t=gameTime,bob=Math.sin(t*3.5)*1.4;
+  const throwing=(z.throwTime||0)>0,q=throwing?1-z.throwTime/.92:0;
+  const wind=q<.38?q/.38:1,release=Math.max(0,Math.min(1,(q-.38)/.30)),recover=Math.max(0,Math.min(1,(q-.68)/.32));
+  const lean=throwing?wind*9-recover*7:3+Math.sin(t*2.2)*1.5;
+  c.save();c.clearRect(0,0,w,h);c.translate(w*.5,h*.54);c.scale(w/150,h/180);c.rotate(lean*Math.PI/180);
+  if((z.teleportFx||0)>0){const a=Math.min(.42,z.teleportFx/.65*.42);c.fillStyle=`rgba(200,236,255,${a})`;c.fillRect(-58,-84,116,158);}
+  // Grounded, uneven worker boots and torn trouser legs.
+  c.fillStyle='rgba(5,8,7,.48)';c.beginPath();c.ellipse(1,68,45,9,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='#273036';c.lineWidth=17;c.lineCap='round';c.beginPath();c.moveTo(-13,22);c.lineTo(-23,57+bob);c.moveTo(13,22);c.lineTo(22,58-bob);c.stroke();
+  c.strokeStyle='#50606a';c.lineWidth=4;c.beginPath();c.moveTo(-18,31);c.lineTo(-24,52);c.moveTo(18,31);c.lineTo(22,52);c.stroke();
+  c.fillStyle='#171c20';c.strokeStyle='#090b0c';c.lineWidth=3;c.beginPath();c.roundRect(-42,54+bob,35,16,4);c.roundRect(8,55-bob,37,16,4);c.fill();c.stroke();
+  c.fillStyle='#62504a';c.fillRect(-34,56+bob,18,5);c.fillRect(17,57-bob,18,5);
+  // Rotten torso, open blood-stained safety vest and exposed rib cage.
+  c.fillStyle='#566a50';c.strokeStyle='#20291f';c.lineWidth=3;c.beginPath();c.moveTo(-27,-28);c.lineTo(25,-30);c.lineTo(31,28);c.lineTo(-25,27);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#2b1719';c.beginPath();c.ellipse(0,-2,20,29,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='#d3cab0';c.lineWidth=4;for(let i=0;i<4;i++){const yy=-18+i*9;c.beginPath();c.moveTo(-4,yy);c.quadraticCurveTo(-16,yy+1,-17,yy+7);c.moveTo(4,yy);c.quadraticCurveTo(16,yy+1,17,yy+7);c.stroke();}
+  c.strokeStyle='#6f171c';c.lineWidth=3;c.beginPath();c.moveTo(0,-21);c.lineTo(0,19);c.stroke();
+  c.fillStyle='#d7d1bd';c.strokeStyle='#4c4840';c.lineWidth=3;c.beginPath();c.moveTo(-28,-27);c.lineTo(-10,-23);c.lineTo(-17,28);c.lineTo(-33,20);c.closePath();c.fill();c.stroke();c.beginPath();c.moveTo(27,-29);c.lineTo(10,-23);c.lineTo(16,27);c.lineTo(32,18);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#8d2025';c.fillRect(-29,-13,8,6);c.fillRect(19,3,9,5);c.fillRect(-22,17,7,5);
+  // Back arm hangs loose; throwing arm winds behind the head then snaps forward.
+  c.strokeStyle='#526b50';c.lineWidth=12;c.beginPath();c.moveTo(25,-18);c.lineTo(39,12+bob);c.lineTo(42,35+bob);c.stroke();
+  c.fillStyle='#435b45';c.beginPath();c.ellipse(43,39+bob,7,12,.1,0,Math.PI*2);c.fill();
+  const handX=throwing?(-34+release*54-recover*18):(-40),handY=throwing?(-5-wind*42+release*32+recover*16):(23+bob);
+  c.strokeStyle='#5f7757';c.lineWidth=12;c.beginPath();c.moveTo(-24,-18);c.lineTo(-36,-1-wind*18);c.lineTo(handX,handY);c.stroke();
+  c.fillStyle='#465f48';c.beginPath();c.ellipse(handX,handY,8,10,-.3,0,Math.PI*2);c.fill();
+  // Neck, hanging jaw, asymmetric dead eyes.
+  c.fillStyle='#52684d';c.fillRect(-9,-41,17,18);c.fillStyle='#657d59';c.strokeStyle='#20291f';c.lineWidth=3;c.beginPath();c.ellipse(-3,-51,23,24,-.13,0,Math.PI*2);c.fill();c.stroke();
+  c.fillStyle='#251416';c.beginPath();c.moveTo(-18,-47);c.lineTo(-4,-43);c.lineTo(-10,-29);c.lineTo(-21,-35);c.closePath();c.fill();
+  c.fillStyle='#d7d2b5';for(let i=0;i<4;i++)c.fillRect(-17+i*5,-43+(i%2),3,5);
+  c.fillStyle='#dedbbd';c.beginPath();c.ellipse(-11,-57,4.5,2.7,-.2,0,Math.PI*2);c.ellipse(5,-55,3.8,2.3,.15,0,Math.PI*2);c.fill();
+  c.fillStyle='#54151b';c.beginPath();c.arc(-10,-57,1.5,0,Math.PI*2);c.arc(5,-55,1.4,0,Math.PI*2);c.fill();
+  // Bright construction hardhat: the strongest silhouette cue from the reference.
+  c.fillStyle='#f5bb0b';c.strokeStyle='#4c3505';c.lineWidth=4;c.beginPath();c.arc(-4,-66,27,Math.PI,Math.PI*2);c.lineTo(25,-61);c.lineTo(-35,-60);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#ffd82e';c.beginPath();c.roundRect(-9,-91,11,25,4);c.fill();c.stroke();c.fillStyle='#fff2a1';c.fillRect(-6,-87,3,13);
+  c.fillStyle='#f0ad08';c.strokeStyle='#4c3505';c.lineWidth=3;c.beginPath();c.moveTo(-37,-62);c.lineTo(31,-62);c.lineTo(24,-55);c.lineTo(-34,-55);c.closePath();c.fill();c.stroke();
+  // Wrench remains in the grip during wind-up and leaves the hand at release.
+  if(!throwing||q<.48){
+    c.save();c.translate(handX,handY);c.rotate(throwing?(-1.1+wind*.55):1.42);c.strokeStyle='#302d29';c.lineWidth=7;c.beginPath();c.moveTo(0,0);c.lineTo(0,41);c.stroke();c.strokeStyle='#9a958b';c.lineWidth=3;c.beginPath();c.moveTo(0,1);c.lineTo(0,39);c.stroke();c.fillStyle='#58534c';c.beginPath();c.arc(0,46,10,.35,Math.PI*1.65);c.lineTo(0,46);c.closePath();c.fill();c.restore();
+  }
+  if((z.bossHitFx||0)>0){const a=Math.min(.72,z.bossHitFx/.24*.72);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(-75,-100,150,180);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
   c.restore();
 }
 function drawBossTruck(c,open=0){
@@ -4852,6 +4917,10 @@ function render(){
     d.style.zIndex='19';d.style.pointerEvents='none';
     d.appendChild(makeCanvas(c=>drawBrainDrop(c,b)));frameUnits.appendChild(d);
   }
+  for(const w of bossWrenches){
+    const d=document.createElement('div');d.className='entity';d.style.left=pctX(w.x);d.style.top=pctY(w.y);d.style.width=(.92/COLS*100)+'%';d.style.height=(100/ROWS*.92)+'%';d.style.zIndex='27';d.style.pointerEvents='none';
+    const wc=document.createElement('canvas');wc.width=96*MOBILE_RENDER_SCALE;wc.height=96*MOBILE_RENDER_SCALE;wc.style.width='100%';wc.style.height='100%';drawThrownWrench(wc.getContext('2d'),w);d.appendChild(wc);frameUnits.appendChild(d);
+  }
   for(const z of zombies){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
     if(z.type==='workboss'){
@@ -5035,7 +5104,7 @@ function startLevel(n){
   level10Boss=null;level10IntroTarget=10;battleRoot.classList.remove('bossWarningShake');document.getElementById('bossCinematicAlert')?.classList.remove('show');document.getElementById('bossGlobalHp')?.classList.remove('show','docked');
   currentLevel=n;const cfg=LEVELS[n];ROWS=cfg.rows.length;buildGrid();
   battleRoot.classList.remove('out');levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');rewardStage.classList.remove('go');
-  plants=[];zombies=[];brainDrops=[];level8FlagIndex=0;level8FlagBurst=[];level9MinerQueue=[];level9MinerIntroDone=false;level9MinerMidDone=false;level9MinerLateDone=false;peas=[];suns=[];looseBuckets=[];looseBucketDrag=null;magnetFx=[];deathFx=[];coneFx=[];blastFx=[];peaImpactFx=[];bloodFx=[];deathBloodDrops=[];groundBloodFx=[];armFx=[];hpBreakFx=[];fireTiles=[];chainsawFx=[];chainsaws=cfg.rows.map(row=>({row,used:false,active:false,x:-.08}));document.getElementById('infectionOverlay')?.classList.remove('show');cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,glove:0};sun=cfg.initialSun;kills=0;spawned=0;selected=null;running=false;battleStarted=false;glovePlantId=null;gloveFx=null;gloveFx=null;ended=false;levelCompletePending=false;nextId=1;
+  plants=[];zombies=[];bossWrenches=[];brainDrops=[];level8FlagIndex=0;level8FlagBurst=[];level9MinerQueue=[];level9MinerIntroDone=false;level9MinerMidDone=false;level9MinerLateDone=false;peas=[];suns=[];looseBuckets=[];looseBucketDrag=null;magnetFx=[];deathFx=[];coneFx=[];blastFx=[];peaImpactFx=[];bloodFx=[];deathBloodDrops=[];groundBloodFx=[];armFx=[];hpBreakFx=[];fireTiles=[];chainsawFx=[];chainsaws=cfg.rows.map(row=>({row,used:false,active:false,x:-.08}));document.getElementById('infectionOverlay')?.classList.remove('show');cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,glove:0};sun=cfg.initialSun;kills=0;spawned=0;selected=null;running=false;battleStarted=false;glovePlantId=null;gloveFx=null;gloveFx=null;ended=false;levelCompletePending=false;nextId=1;
   spawnClock=0;skySunClock=0;nextSpawnDelay=cfg.firstDelay;impSpawnClock=0;nextImpSpawnDelay=22+Math.random()*6;waveBurstRemaining=0;waveTriggeredMid=false;waveTriggeredFinal=false;wavePulseTimer=0;finalRaid=null;level7Event=null;gameTime=0;last=performance.now();toggle.disabled=false;toggle.textContent='开始战斗';speedMul=1;document.getElementById('speed').textContent='1.0×';document.getElementById('speed').classList.remove('on');selectTool(null);applyLevelUI();fitMobileBoard();battlePrepOverlay.classList.add('show');battlePrepOverlay.setAttribute('aria-hidden','false');say('点击“开始战斗”后才能操作草坪。');updateHUD();updateCooldownUI();updateWaveUI();render();
 }
 function reset(){startLevel(currentLevel)}
