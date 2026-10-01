@@ -5522,7 +5522,7 @@ document.getElementById('rewardPortrait').src=plantPortraitSrc('wall');
 rewardCard.addEventListener('click',claimReward);
 function drawToolCards(){
   document.querySelectorAll('.tool[data-tool]').forEach(b=>{
-    const t=b.dataset.tool, art=b.querySelector('.cardArt');if(art){const c=art.getContext('2d');c.clearRect(0,0,64,64);c.imageSmoothingEnabled=false;if(t==='pea')drawPea(c,0,0,false);else if(t==='sunflower')drawSunflower(c,0,0,false);else if(t==='wall')drawWall(c,0,0,false);else if(t==='potato')drawPotato(c,0,{armed:true,arm:6},false);else if(t==='fan')drawFan(c,0,{id:6},false);else if(t==='lighter')drawLighter(c,0,{id:314},false);else if(t==='magnet')drawMagnet(c,0,{id:315},false);else if(t==='glove')drawGlove(c);else drawShovel(c);}
+    const t=b.dataset.tool, art=b.querySelector('.cardArt');if(art){const c=art.getContext('2d');c.clearRect(0,0,64,64);c.imageSmoothingEnabled=false;if(t==='pea')drawPea(c,0,0,false);else if(t==='sunflower')drawSunflower(c,0,0,false);else if(t==='wall')drawWall(c,0,0,false);else if(t==='potato')drawPotato(c,0,{armed:true,arm:6},false);else if(t==='fan')drawFan(c,0,{id:6},false);else if(t==='lighter')drawLighter(c,0,{id:314},false);else if(t==='magnet')drawMagnet(c,0,{id:315},false);else if(t==='crossfan')drawCrossFan(c,0,{id:316,crossActive:0},false);else if(t==='glove')drawGlove(c);else drawShovel(c);}
     const ms=b.querySelector('.miniSun');if(ms){const c=ms.getContext('2d');c.clearRect(0,0,16,16);c.imageSmoothingEnabled=false;c.save();c.scale(.25,.25);drawSun(c);c.restore();}
   });
 }
@@ -5581,7 +5581,6 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>{
   setTimeout(()=>loadingScreen.classList.add('done'),220);
 }));
 introStart.addEventListener('click',()=>{
-  requestGameFullscreen();
   introStart.disabled=true;introScreen.classList.add('exit');
   battleRoot.classList.add('out');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');levelScreen.classList.remove('show');
   setTimeout(()=>mainMenuScreen.classList.add('show'),260);
