@@ -1358,7 +1358,7 @@ function updateWaveUI(){
 function startLevel4FinalRaid(){
   if(currentLevel!==4||finalRaid?.active)return;
   const types=['normal','cone','crawler','normal','cone','crawler','normal','cone'],queue=types.map((type,i)=>({type,row:LEVELS[4].rows[i%LEVELS[4].rows.length]}));
-  finalRaid={active:true,age:0,extendDur:2.8,hold:.5,queue,nextDrop:0,dropEvery:.34,closing:false,closeAge:0};
+  finalRaid={active:true,age:0,extendDur:5.6,hold:.7,queue,nextDrop:0,dropEvery:.34,closing:false,closeAge:0};
   waveBurstRemaining=0;spawned=LEVELS[4].total;
   say('最后一波！右侧卸货板正在伸入草坪——准备迎接大举突袭！');
 }
@@ -1519,12 +1519,12 @@ function updateLevel10(dt){
   // The truck is the finale, not the opening frame. Let the level's normal
   // prelude spawn first; only then does the truck enter and take over music.
   if(!level10Boss){if(spawned>=level10IntroTarget)startLevel10Boss();return;}
-  const e=level10Boss,wasBossMusic=e.musicSwitched;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-1.0)/1.5));
-  if(!wasBossMusic&&e.age>=2.6){e.musicSwitched=true;playBossBgm();say('战车货梯完全打开——Boss 战开始！');}
+  const e=level10Boss,wasBossMusic=e.musicSwitched;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-1.2)/5.6));
+  if(!wasBossMusic&&e.age>=6.85){e.musicSwitched=true;playBossBgm();say('战车货梯完全打开——Boss 战开始！');}
   const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);
   if(!boss){e.phase='defeated';e.emitted=12;spawned=Math.max(spawned,LEVELS[10].total);return;}
   boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);
-  if(e.age<3.0){e.phase='entrance';return;}
+  if(e.age<7.15){e.phase='entrance';return;}
   if(e.phase==='entrance'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
   if(e.phase==='release'&&e.emitted<12){
     e.releaseClock-=dt;
@@ -4463,23 +4463,40 @@ function drawBossTruck(c,open=0){
   c.restore();
 }
 function drawRaidRamp(c,extend,closing){
-  const w=c.canvas.width,h=c.canvas.height;
-  c.clearRect(0,0,w,h);c.save();
-  // A single broad loading plate covers all three delivery lanes.
-  const hingeX=w*.88,tipX=w*(.86-.79*extend),hingeTop=h*.10,hingeBottom=h*.90,tipTop=h*.29,tipBottom=h*.71;
-  c.lineJoin='round';c.fillStyle='#596469';c.strokeStyle='#111719';c.lineWidth=12;c.beginPath();c.moveTo(hingeX,hingeTop);c.lineTo(tipX,tipTop);c.lineTo(tipX,tipBottom);c.lineTo(hingeX,hingeBottom);c.closePath();c.fill();c.stroke();
-  c.strokeStyle='#9aa5a8';c.lineWidth=4;c.beginPath();c.moveTo(hingeX-3,hingeTop+5);c.lineTo(tipX+3,tipTop+4);c.moveTo(hingeX-3,hingeBottom-5);c.lineTo(tipX+3,tipBottom-4);c.stroke();
-  for(let i=1;i<8;i++){
-    const q=i/8,x=hingeX+(tipX-hingeX)*q,top=hingeTop+(tipTop-hingeTop)*q,bottom=hingeBottom+(tipBottom-hingeBottom)*q;
-    c.strokeStyle=i%2?'#333c40':'#778286';c.lineWidth=5;c.beginPath();c.moveTo(x,top+4);c.lineTo(x,bottom-4);c.stroke();
-  }
-  // Three longitudinal rails make the plate read as one three-lane deck.
-  for(const q of [.33,.66]){const y0=hingeTop+(hingeBottom-hingeTop)*q,y1=tipTop+(tipBottom-tipTop)*q;c.strokeStyle='#30383b';c.lineWidth=4;c.beginPath();c.moveTo(hingeX,y0);c.lineTo(tipX,y1);c.stroke();}
-  c.fillStyle='#b38b27';for(const y of [hingeTop,hingeBottom]){c.beginPath();c.arc(hingeX,y,11,0,Math.PI*2);c.fill();c.strokeStyle='#171c1e';c.lineWidth=4;c.stroke();}
-  c.strokeStyle='#7b8589';c.lineWidth=7;c.beginPath();c.moveTo(w*.91,h*.82);c.lineTo(w*.57,h*.76);c.moveTo(w*.91,h*.18);c.lineTo(w*.57,h*.24);c.stroke();
+  const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.lineJoin='round';c.lineCap='round';
+  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
+  // Three telescoping sections deploy in sequence with a small mechanical overlap.
+  const p1=smooth(extend/.38),p2=smooth((extend-.27)/.40),p3=smooth((extend-.61)/.39);
+  const hingeX=w*.90,tipX=w*.075,hingeTop=h*.10,hingeBottom=h*.90,tipTop=h*.29,tipBottom=h*.71;
+  const settle=p3>.84?Math.sin((p3-.84)/.16*Math.PI)*h*.012:0;
+  const point=(q,edge)=>({x:hingeX+(tipX-hingeX)*q,y:(edge==='top'?hingeTop:hingeBottom)+((edge==='top'?tipTop:tipBottom)-(edge==='top'?hingeTop:hingeBottom))*q+(q> .66?settle:0)});
+  const panel=(from,to,progress,index)=>{
+    if(progress<=.002)return;
+    const q0=from,q1=from+(to-from)*progress,A=point(q0,'top'),B=point(q1,'top'),C=point(q1,'bottom'),D=point(q0,'bottom');
+    c.fillStyle=['#59656a','#4b585e','#3f4d53'][index];c.strokeStyle='#111719';c.lineWidth=8;
+    c.beginPath();c.moveTo(A.x,A.y);c.lineTo(B.x,B.y);c.lineTo(C.x,C.y);c.lineTo(D.x,D.y);c.closePath();c.fill();c.stroke();
+    // Raised side rails and a recessed central deck.
+    c.strokeStyle=index===2?'#b5bec0':'#929da1';c.lineWidth=3;
+    c.beginPath();c.moveTo(A.x,A.y+5);c.lineTo(B.x,B.y+5);c.moveTo(D.x,D.y-5);c.lineTo(C.x,C.y-5);c.stroke();
+    for(const lane of [.33,.66]){const y0=A.y+(D.y-A.y)*lane,y1=B.y+(C.y-B.y)*lane;c.strokeStyle='#273136';c.lineWidth=3;c.beginPath();c.moveTo(A.x,y0);c.lineTo(B.x,y1);c.stroke();}
+    // Cross ribs, paired rivets and scuffed steel add scale without filling the panel solid.
+    for(let i=1;i<=3;i++){const q=q0+(q1-q0)*i/4,T=point(q,'top'),U=point(q,'bottom');c.strokeStyle=i%2?'#778287':'#303a3f';c.lineWidth=4;c.beginPath();c.moveTo(T.x,T.y+7);c.lineTo(U.x,U.y-7);c.stroke();c.fillStyle='#c0c6c4';for(const yy of [T.y+12,U.y-12]){c.beginPath();c.arc(T.x,yy,2.2,0,Math.PI*2);c.fill();}}
+    // Yellow/black safety strip on the moving nose of every section.
+    const noseTop=B.y+7,noseBottom=C.y-7,span=Math.max(8,noseBottom-noseTop);
+    for(let i=0;i<6;i++){const y=noseTop+span*i/6;c.strokeStyle=i%2?'#232727':'#d4aa32';c.lineWidth=5;c.beginPath();c.moveTo(B.x-1,y);c.lineTo(B.x-1,Math.min(noseBottom,y+span/6));c.stroke();}
+    c.fillStyle='#b58b29';c.strokeStyle='#161c1e';c.lineWidth=3;for(const y of [B.y+8,C.y-8]){c.beginPath();c.arc(B.x,y,6,0,Math.PI*2);c.fill();c.stroke();}
+  };
+  // Draw far sections first so each nearer sleeve visibly overlaps the next.
+  panel(2/3,1,p3,2);panel(1/3,2/3,p2,1);panel(0,1/3,p1,0);
+  // Hinge axle, locking teeth and twin hydraulic pistons stay attached to the truck.
+  c.fillStyle='#be9029';c.strokeStyle='#171c1e';c.lineWidth=4;
+  for(const y of [hingeTop+10,hingeBottom-10]){c.beginPath();c.arc(hingeX,y,10,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#d6d8ce';c.beginPath();c.arc(hingeX,y,3.5,0,Math.PI*2);c.fill();c.fillStyle='#be9029';}
+  const ramEnd=point(Math.max(.05,p1*.30),'bottom'),ramEnd2=point(Math.max(.05,p1*.30),'top');
+  c.strokeStyle='#20282b';c.lineWidth=9;c.beginPath();c.moveTo(w*.94,h*.78);c.lineTo(ramEnd.x,ramEnd.y-8);c.moveTo(w*.94,h*.22);c.lineTo(ramEnd2.x,ramEnd2.y+8);c.stroke();
+  c.strokeStyle='#aab4b6';c.lineWidth=4;c.beginPath();c.moveTo(w*.94,h*.78);c.lineTo(ramEnd.x,ramEnd.y-8);c.moveTo(w*.94,h*.22);c.lineTo(ramEnd2.x,ramEnd2.y+8);c.stroke();
+  c.fillStyle='#242c2f';for(let i=0;i<5;i++){c.fillRect(hingeX-5-i*7,h*.475+(i%2)*5,5,10);}
   c.restore();
 }
-
 
 function moveLooseBucketPointer(e){
   if(!looseBucketDrag||e.pointerId!==looseBucketDrag.pointerId)return;
