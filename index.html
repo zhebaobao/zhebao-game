@@ -4539,7 +4539,7 @@ function render(){
     const c=document.createElement('canvas');c.width=MOBILE_PERF?112:220;c.height=MOBILE_PERF?112:220;c.style.width='100%';c.style.height='100%';c.style.display='block';drawBurningTileCanvas(c,tile);d.appendChild(c);frameUnits.appendChild(d);
   }
   for(const p of plants){
-    const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(p.col+.5);d.style.top=pctY(p.row+.5);
+    const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(p.col+.5);d.style.top=pctY(p.row+.5);d.style.zIndex='8';d.style.visibility='visible';
     if(p.type==='magnet'&&looseBuckets.some(b=>b.magnetId===p.id&&b.state==='held'))d.classList.add('magnetBucketReady');
     const held=glovePlantId===p.id;
     if((p.squashDeath||0)>0){
