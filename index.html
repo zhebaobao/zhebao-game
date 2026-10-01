@@ -4612,55 +4612,85 @@ function drawWorkBoss(c,z){
   c.restore();
 }
 function drawBossTruck(c,open=0){
-  const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5);c.scale(w/220,h/220);
-  // Only the rear slice of a much larger armored cargo box enters the lawn.
-  c.fillStyle='#101516';c.strokeStyle='#050708';c.lineWidth=6;c.beginPath();c.roundRect(-108,-105,216,210,10);c.fill();c.stroke();
-  c.fillStyle='#455156';c.fillRect(-96,-94,192,188);c.strokeStyle='#879397';c.lineWidth=4;c.strokeRect(-96,-94,192,188);
-  c.fillStyle='#242d30';for(let y=-78;y<83;y+=24)c.fillRect(-91,y,182,5);
-  c.fillStyle='#111719';c.fillRect(-72,-72,144,134);c.strokeStyle='#7d898d';c.lineWidth=5;c.strokeRect(-72,-72,144,134);
-  const shutter=54*(1-open);
-  c.fillStyle='#5d696d';c.fillRect(-68,-68,136,shutter);c.fillRect(-68,58-shutter,136,shutter);
-  c.strokeStyle='#a0abad';c.lineWidth=3;for(let x=-52;x<=52;x+=26){c.beginPath();c.moveTo(x,-68);c.lineTo(x,-68+shutter);c.moveTo(x,58);c.lineTo(x,58-shutter);c.stroke();}
-  c.fillStyle='#b72c2c';c.fillRect(-94,-89,14,10);c.fillRect(80,-89,14,10);c.fillStyle='#e6c54e';c.fillRect(-94,79,14,10);c.fillRect(80,79,14,10);
-  c.fillStyle='#171d1f';for(const x of [-72,72]){c.beginPath();c.arc(x,98,17,0,Math.PI*2);c.fill();c.fillStyle='#839094';c.beginPath();c.arc(x,98,7,0,Math.PI*2);c.fill();c.fillStyle='#171d1f';}
+  const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5);c.scale(w/240,h/230);c.lineJoin='round';c.lineCap='round';
+  const door=Math.max(0,Math.min(1,open));
+  // Heavy chassis and three visible off-road wheels establish the rear three-quarter angle.
+  c.fillStyle='#171c1b';c.strokeStyle='#070a09';c.lineWidth=6;c.beginPath();c.moveTo(-113,55);c.lineTo(82,54);c.lineTo(108,82);c.lineTo(-100,91);c.closePath();c.fill();c.stroke();
+  for(const [x,y,r] of [[-85,75,22],[-38,78,21],[16,79,20]]){
+    c.fillStyle='#111514';c.strokeStyle='#050706';c.lineWidth=5;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();c.stroke();
+    c.strokeStyle='#38403d';c.lineWidth=5;for(let i=0;i<8;i++){const a=i*Math.PI/4;c.beginPath();c.moveTo(x+Math.cos(a)*(r-5),y+Math.sin(a)*(r-5));c.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);c.stroke();}
+    c.fillStyle='#626b67';c.beginPath();c.arc(x,y,r*.38,0,Math.PI*2);c.fill();c.fillStyle='#202624';c.beginPath();c.arc(x,y,r*.17,0,Math.PI*2);c.fill();
+  }
+  // Olive cargo-box side recedes to the left; roof and panel ribs catch the light.
+  const olive=c.createLinearGradient(-110,-90,25,48);olive.addColorStop(0,'#526238');olive.addColorStop(.46,'#293d2d');olive.addColorStop(1,'#172a25');
+  c.fillStyle=olive;c.strokeStyle='#0b1210';c.lineWidth=6;c.beginPath();c.moveTo(-106,-87);c.lineTo(26,-91);c.lineTo(47,-70);c.lineTo(40,54);c.lineTo(-108,53);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#637249';c.beginPath();c.moveTo(-102,-89);c.lineTo(27,-94);c.lineTo(47,-76);c.lineTo(-88,-71);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='#718064';c.lineWidth=3;for(const x of [-84,-49,-14,20]){c.beginPath();c.moveTo(x,-68);c.lineTo(x,45);c.stroke();}
+  c.strokeStyle='#14231e';c.lineWidth=5;c.beginPath();c.moveTo(-105,35);c.lineTo(40,36);c.moveTo(-102,-34);c.lineTo(43,-32);c.stroke();
+  c.fillStyle='#151d1a';for(const [x,y] of [[-92,-55],[-58,-52],[-22,-52],[-91,14],[-55,15],[-18,13]]){c.fillRect(x,y,5,8);}
+  // Rear armored frame and open, deep cargo bay.
+  c.fillStyle='#555b56';c.strokeStyle='#111614';c.lineWidth=7;c.beginPath();c.moveTo(25,-78);c.lineTo(98,-66);c.lineTo(106,56);c.lineTo(36,53);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#080d0d';c.strokeStyle='#9b9990';c.lineWidth=5;c.beginPath();c.moveTo(36,-64);c.lineTo(88,-56);c.lineTo(94,43);c.lineTo(42,42);c.closePath();c.fill();c.stroke();
+  // Crates, drums and wall braces remain visible through the doorway.
+  c.strokeStyle='#303a36';c.lineWidth=3;c.beginPath();c.moveTo(47,-56);c.lineTo(49,38);c.moveTo(68,-58);c.lineTo(71,40);c.moveTo(89,-50);c.lineTo(91,39);c.stroke();
+  const crate=(x,y,ww,hh,col)=>{c.fillStyle=col;c.strokeStyle='#171b16';c.lineWidth=3;c.fillRect(x,y,ww,hh);c.strokeRect(x,y,ww,hh);c.strokeStyle='rgba(230,213,139,.35)';c.beginPath();c.moveTo(x+4,y+4);c.lineTo(x+ww-4,y+hh-4);c.stroke();};
+  crate(45,10,22,29,'#5a6437');crate(68,17,21,23,'#75603a');crate(54,-15,29,26,'#3d5131');
+  c.fillStyle='#343d3b';c.strokeStyle='#111';c.lineWidth=2;c.beginPath();c.ellipse(43,25,7,4,0,0,Math.PI*2);c.fill();c.fillRect(36,25,14,17);c.beginPath();c.ellipse(43,42,7,4,0,0,Math.PI*2);c.fill();
+  // Twin rear doors swing outward instead of behaving like a flat shutter.
+  if(door>.02){
+    const leftX=34-door*35,rightX=97+door*22;
+    c.fillStyle='#39413d';c.strokeStyle='#101412';c.lineWidth=5;
+    c.beginPath();c.moveTo(35,-65);c.lineTo(leftX-19,-54-door*7);c.lineTo(leftX-16,42+door*5);c.lineTo(39,43);c.closePath();c.fill();c.stroke();
+    c.beginPath();c.moveTo(90,-57);c.lineTo(rightX+13,-43+door*3);c.lineTo(rightX+14,48+door*5);c.lineTo(93,43);c.closePath();c.fill();c.stroke();
+    c.strokeStyle='#7d817a';c.lineWidth=2;c.strokeRect(leftX-13,-44-door*5,13,40);c.strokeRect(rightX+1,-34+door*2,9,36);
+    c.fillStyle='#d5a928';for(const yy of [-48,-24,0,24]){c.fillRect(leftX-19,yy,5,11);c.fillRect(rightX+12,yy+5,5,11);}
+  }else{
+    c.fillStyle='#48504d';c.strokeStyle='#151a18';c.lineWidth=4;c.fillRect(38,-60,53,101);c.strokeRect(38,-60,53,101);
+    c.strokeStyle='#8a918c';c.lineWidth=2;c.beginPath();c.moveTo(64,-57);c.lineTo(64,38);c.stroke();
+  }
+  // Lamps, armor bolts, hinges and hanging chains.
+  c.fillStyle='#bf2d24';c.fillRect(31,-74,14,7);c.fillRect(79,-66,13,7);
+  c.fillStyle='#d4aa2d';for(const [x,y] of [[31,47],[91,48],[-98,45]])c.fillRect(x,y,12,7);
+  c.fillStyle='#c2c2b7';for(const [x,y] of [[31,-67],[98,-53],[37,36],[96,37],[-96,-73],[-96,38]]){c.beginPath();c.arc(x,y,2.5,0,Math.PI*2);c.fill();}
+  if(door>.12){c.strokeStyle='#90958f';c.lineWidth=3;for(const side of [0,1]){c.beginPath();for(let i=0;i<8;i++){const q=i/7,x=(side?98:38)+(side?1:-1)*door*(8+i*2.1),y=-42+i*12;if(i)c.lineTo(x,y);else c.moveTo(x,y);}c.stroke();}}
   c.restore();
 }
 function drawRaidRamp(c,extend,closing){
   const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.lineJoin='round';c.lineCap='round';
   const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
-  // Three telescoping sections deploy in sequence with a small mechanical overlap.
   const p1=smooth(extend/.38),p2=smooth((extend-.27)/.40),p3=smooth((extend-.61)/.39);
-  const hingeX=w*.90,tipX=w*.075,hingeTop=h*.10,hingeBottom=h*.90,tipTop=h*.29,tipBottom=h*.71;
-  const settle=p3>.84?Math.sin((p3-.84)/.16*Math.PI)*h*.012:0;
-  const point=(q,edge)=>({x:hingeX+(tipX-hingeX)*q,y:(edge==='top'?hingeTop:hingeBottom)+((edge==='top'?tipTop:tipBottom)-(edge==='top'?hingeTop:hingeBottom))*q+(q> .66?settle:0)});
+  // Perspective flares toward the lawn: narrow at the truck, broad and threatening at the near edge.
+  const hingeX=w*.94,tipX=w*.045,hingeTop=h*.25,hingeBottom=h*.75,tipTop=h*.055,tipBottom=h*.945;
+  const settle=p3>.84?Math.sin((p3-.84)/.16*Math.PI)*h*.015:0;
+  const point=(q,edge)=>({x:hingeX+(tipX-hingeX)*q,y:(edge==='top'?hingeTop:hingeBottom)+((edge==='top'?tipTop:tipBottom)-(edge==='top'?hingeTop:hingeBottom))*q+(q>.66?settle:0)});
+  const lerp=(A,B,t)=>({x:A.x+(B.x-A.x)*t,y:A.y+(B.y-A.y)*t});
   const panel=(from,to,progress,index)=>{
     if(progress<=.002)return;
     const q0=from,q1=from+(to-from)*progress,A=point(q0,'top'),B=point(q1,'top'),C=point(q1,'bottom'),D=point(q0,'bottom');
-    c.fillStyle=['#59656a','#4b585e','#3f4d53'][index];c.strokeStyle='#111719';c.lineWidth=8;
-    c.beginPath();c.moveTo(A.x,A.y);c.lineTo(B.x,B.y);c.lineTo(C.x,C.y);c.lineTo(D.x,D.y);c.closePath();c.fill();c.stroke();
-    // Raised side rails and a recessed central deck.
-    c.strokeStyle=index===2?'#b5bec0':'#929da1';c.lineWidth=3;
-    c.beginPath();c.moveTo(A.x,A.y+5);c.lineTo(B.x,B.y+5);c.moveTo(D.x,D.y-5);c.lineTo(C.x,C.y-5);c.stroke();
-    for(const lane of [.33,.66]){const y0=A.y+(D.y-A.y)*lane,y1=B.y+(C.y-B.y)*lane;c.strokeStyle='#273136';c.lineWidth=3;c.beginPath();c.moveTo(A.x,y0);c.lineTo(B.x,y1);c.stroke();}
-    // Cross ribs, paired rivets and scuffed steel add scale without filling the panel solid.
-    for(let i=1;i<=3;i++){const q=q0+(q1-q0)*i/4,T=point(q,'top'),U=point(q,'bottom');c.strokeStyle=i%2?'#778287':'#303a3f';c.lineWidth=4;c.beginPath();c.moveTo(T.x,T.y+7);c.lineTo(U.x,U.y-7);c.stroke();c.fillStyle='#c0c6c4';for(const yy of [T.y+12,U.y-12]){c.beginPath();c.arc(T.x,yy,2.2,0,Math.PI*2);c.fill();}}
-    // Yellow/black safety strip on the moving nose of every section.
-    const noseTop=B.y+7,noseBottom=C.y-7,span=Math.max(8,noseBottom-noseTop);
-    for(let i=0;i<6;i++){const y=noseTop+span*i/6;c.strokeStyle=i%2?'#232727':'#d4aa32';c.lineWidth=5;c.beginPath();c.moveTo(B.x-1,y);c.lineTo(B.x-1,Math.min(noseBottom,y+span/6));c.stroke();}
-    c.fillStyle='#b58b29';c.strokeStyle='#161c1e';c.lineWidth=3;for(const y of [B.y+8,C.y-8]){c.beginPath();c.arc(B.x,y,6,0,Math.PI*2);c.fill();c.stroke();}
+    const grad=c.createLinearGradient(A.x,A.y,C.x,C.y);grad.addColorStop(0,['#69706c','#59615d','#4c5551'][index]);grad.addColorStop(.52,['#343c39','#303936','#29322f'][index]);grad.addColorStop(1,'#171d1b');
+    c.fillStyle=grad;c.strokeStyle='#0b100f';c.lineWidth=8;c.beginPath();c.moveTo(A.x,A.y);c.lineTo(B.x,B.y);c.lineTo(C.x,C.y);c.lineTo(D.x,D.y);c.closePath();c.fill();c.stroke();
+    // Wide edge rails and two raised longitudinal wheel guides.
+    for(const lane of [.08,.34,.66,.92]){const S=lerp(A,D,lane),E=lerp(B,C,lane);c.strokeStyle=(lane<.1||lane>.9)?'#a5aaa3':'#858b85';c.lineWidth=(lane<.1||lane>.9)?6:4;c.beginPath();c.moveTo(S.x,S.y);c.lineTo(E.x,E.y);c.stroke();c.strokeStyle='#202725';c.lineWidth=2;c.beginPath();c.moveTo(S.x,S.y+2);c.lineTo(E.x,E.y+2);c.stroke();}
+    // Cross braces, diamond-plate dots and battered seams.
+    for(let i=1;i<=3;i++){const q=q0+(q1-q0)*i/4,T=point(q,'top'),U=point(q,'bottom');c.strokeStyle=i%2?'#79807b':'#222a27';c.lineWidth=4;c.beginPath();c.moveTo(T.x+5,T.y+5);c.lineTo(U.x+5,U.y-5);c.stroke();}
+    c.fillStyle='rgba(194,198,187,.68)';for(let ix=1;ix<7;ix++)for(let iy=1;iy<5;iy++){const q=q0+(q1-q0)*ix/7,T=point(q,'top'),U=point(q,'bottom'),P=lerp(T,U,iy/5);c.fillRect(P.x+(iy%2)*2,P.y,2,2);}
+    // Yellow/black warning stripe spans the full moving nose.
+    const strips=10;for(let i=0;i<strips;i++){const y0=B.y+(C.y-B.y)*i/strips,y1=B.y+(C.y-B.y)*(i+1)/strips;c.strokeStyle=i%2?'#171b19':'#e0ae24';c.lineWidth=7;c.beginPath();c.moveTo(B.x-2,y0);c.lineTo(B.x-2,y1);c.stroke();}
+    // Riveted hinge lugs and side spikes echo the reference vehicle.
+    c.fillStyle='#bd9229';c.strokeStyle='#121716';c.lineWidth=3;for(const P of [lerp(B,C,.08),lerp(B,C,.92)]){c.beginPath();c.arc(P.x,P.y,6,0,Math.PI*2);c.fill();c.stroke();}
+    if(index===2&&progress>.75){c.fillStyle='#8f958f';c.strokeStyle='#111514';c.lineWidth=2;for(const k of [.12,.38,.64,.88]){const P=lerp(B,C,k),dir=k<.5?-1:1;c.beginPath();c.moveTo(P.x,P.y);c.lineTo(P.x-17,P.y+dir*7);c.lineTo(P.x-3,P.y+dir*12);c.closePath();c.fill();c.stroke();}}
   };
-  // Draw far sections first so each nearer sleeve visibly overlaps the next.
   panel(2/3,1,p3,2);panel(1/3,2/3,p2,1);panel(0,1/3,p1,0);
-  // Hinge axle, locking teeth and twin hydraulic pistons stay attached to the truck.
-  c.fillStyle='#be9029';c.strokeStyle='#171c1e';c.lineWidth=4;
-  for(const y of [hingeTop+10,hingeBottom-10]){c.beginPath();c.arc(hingeX,y,10,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#d6d8ce';c.beginPath();c.arc(hingeX,y,3.5,0,Math.PI*2);c.fill();c.fillStyle='#be9029';}
-  const ramEnd=point(Math.max(.05,p1*.30),'bottom'),ramEnd2=point(Math.max(.05,p1*.30),'top');
-  c.strokeStyle='#20282b';c.lineWidth=9;c.beginPath();c.moveTo(w*.94,h*.78);c.lineTo(ramEnd.x,ramEnd.y-8);c.moveTo(w*.94,h*.22);c.lineTo(ramEnd2.x,ramEnd2.y+8);c.stroke();
-  c.strokeStyle='#aab4b6';c.lineWidth=4;c.beginPath();c.moveTo(w*.94,h*.78);c.lineTo(ramEnd.x,ramEnd.y-8);c.moveTo(w*.94,h*.22);c.lineTo(ramEnd2.x,ramEnd2.y+8);c.stroke();
-  c.fillStyle='#242c2f';for(let i=0;i<5;i++){c.fillRect(hingeX-5-i*7,h*.475+(i%2)*5,5,10);}
+  // Hydraulic rams and hinge drums visibly carry the ramp's weight.
+  c.fillStyle='#c39527';c.strokeStyle='#111715';c.lineWidth=4;
+  for(const y of [hingeTop+8,hingeBottom-8]){c.beginPath();c.arc(hingeX,y,10,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#d8d8cc';c.beginPath();c.arc(hingeX,y,3.5,0,Math.PI*2);c.fill();c.fillStyle='#c39527';}
+  const r1=point(Math.max(.04,p1*.31),'top'),r2=point(Math.max(.04,p1*.31),'bottom');
+  c.strokeStyle='#202725';c.lineWidth=10;c.beginPath();c.moveTo(w*.98,h*.33);c.lineTo(r1.x,r1.y+9);c.moveTo(w*.98,h*.67);c.lineTo(r2.x,r2.y-9);c.stroke();
+  c.strokeStyle='#bec3bd';c.lineWidth=4;c.beginPath();c.moveTo(w*.98,h*.33);c.lineTo(r1.x,r1.y+9);c.moveTo(w*.98,h*.67);c.lineTo(r2.x,r2.y-9);c.stroke();
+  // Sagging safety chains follow both outer edges as the three sections unfold.
+  if(p1>.08){for(const edge of ['top','bottom']){c.strokeStyle='#aeb2aa';c.lineWidth=3;c.beginPath();for(let i=0;i<=18;i++){const q=p1*(i/18),P=point(q,edge),sag=Math.sin(i/18*Math.PI)*h*.055*(edge==='top'?1:-1);if(i)c.lineTo(P.x,P.y+sag);else c.moveTo(P.x,P.y);}c.stroke();}}
   c.restore();
 }
-
 function moveLooseBucketPointer(e){
   if(!looseBucketDrag||e.pointerId!==looseBucketDrag.pointerId)return;
   const b=looseBuckets.find(x=>x.id===looseBucketDrag.id);if(!b)return;
@@ -4725,20 +4755,20 @@ function render(){
     let ext=Math.max(0,Math.min(1,(r.age-.78)/Math.max(.2,r.extendDur-.78)));
     if(r.closing)ext*=Math.max(0,1-r.closeAge/1.25);
     if(ext>.01){
-      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.82);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.8/COLS*100)+'%';ramp.style.height=(100/ROWS*3.12)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
+      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.98);ramp.style.top=pctY(ROWS/2);ramp.style.width=(5.15/COLS*100)+'%';ramp.style.height=(100/ROWS*3.38)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
       const rc=document.createElement('canvas');rc.width=MOBILE_PERF?300:480;rc.height=MOBILE_PERF?160:220;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),ext,!!r.closing);ramp.appendChild(rc);frameUnits.appendChild(ramp);
     }
     const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(truckX);d.style.top=pctY(ROWS/2);
-    d.style.width=(3.2/COLS*100)+'%';d.style.height=(100/ROWS*3.12)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
+    d.style.width=(3.75/COLS*100)+'%';d.style.height=(100/ROWS*3.38)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
     const c=document.createElement('canvas');c.width=200;c.height=220;c.style.width='100%';c.style.height='100%';drawBossTruck(c.getContext('2d'),ext);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===10&&level10Boss&&level10Boss.age>=2.15){
     const drive=Math.max(0,Math.min(1,(level10Boss.age-2.15)/1.15)),driveEase=drive*drive*(3-2*drive),truckX=11.60+(9.35-11.60)*driveEase;
     if(level10Boss.truckOpen>.01){
-      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.82);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.8/COLS*100)+'%';ramp.style.height=(100/ROWS*3.12)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
+      const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.98);ramp.style.top=pctY(ROWS/2);ramp.style.width=(5.15/COLS*100)+'%';ramp.style.height=(100/ROWS*3.38)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
       const rc=document.createElement('canvas');rc.width=MOBILE_PERF?300:480;rc.height=MOBILE_PERF?160:220;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),level10Boss.truckOpen,false);ramp.appendChild(rc);frameUnits.appendChild(ramp);
     }
-    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(truckX);truck.style.top=pctY(ROWS/2);truck.style.width=(3.2/COLS*100)+'%';truck.style.height=(100/ROWS*3.12)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
+    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(truckX);truck.style.top=pctY(ROWS/2);truck.style.width=(3.75/COLS*100)+'%';truck.style.height=(100/ROWS*3.38)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
     const tc=document.createElement('canvas');tc.width=200;tc.height=220;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc.getContext('2d'),level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
   }
   if(currentLevel===7&&level7Event){
