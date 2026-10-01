@@ -543,6 +543,21 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
 .entity.plant.crossfanPlant{overflow:visible!important;pointer-events:none}
 .entity.plant.crossfanPlant .sprite{width:138%!important;height:138%!important;max-width:none!important;max-height:none!important;position:absolute!important;left:-19%!important;top:-25%!important;transform-origin:50% 72%!important}
 .entity.plant.crossfanPlant .hp,.entity.plant.crossfanPlant .hpBar,.entity.plant.crossfanPlant .health,.entity.plant.crossfanPlant .healthBar{display:none!important}
+
+/* Level 10 cinematic warning and screen-space Boss health presentation */
+#battleRoot.bossWarningShake{animation:bossWarningShake .105s steps(2,end) infinite}
+@keyframes bossWarningShake{0%{transform:translate(0,0)}25%{transform:translate(-5px,3px)}50%{transform:translate(5px,-3px)}75%{transform:translate(-3px,-4px)}100%{transform:translate(4px,3px)}}
+.bossCinematicAlert{position:absolute;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle,rgba(115,0,0,.13),rgba(55,0,0,.47));opacity:0;transition:opacity .18s}
+.bossCinematicAlert.show{opacity:1}.bossCinematicAlert span{font-weight:1000;font-size:clamp(27px,6vw,78px);letter-spacing:.12em;color:#ff1717;text-shadow:0 3px #4c0000,0 0 8px #fff,0 0 28px #ff0000;animation:bossAlertPulse .34s steps(2,end) infinite}
+@keyframes bossAlertPulse{50%{transform:scale(1.075);filter:brightness(1.45)}}
+.bossGlobalHp{position:absolute;z-index:119;pointer-events:none;left:50%;top:50%;width:min(62%,680px);height:42px;transform:translate(-50%,-50%);opacity:0;transition:left 1.05s cubic-bezier(.3,.8,.25,1),top 1.05s cubic-bezier(.3,.8,.25,1),width 1.05s,height 1.05s,transform 1.05s,opacity .22s}
+.bossGlobalHp.show{opacity:1}.bossGlobalHp.docked{left:calc(100% - 42px);top:94px;width:30px;height:min(43%,230px);transform:translate(-50%,0)}
+.bossGlobalHpFrame{position:absolute;inset:0;padding:5px;background:linear-gradient(135deg,#181010,#4b1015 45%,#0d0809);border:3px solid #e33a46;box-shadow:0 0 0 2px #120305,0 0 22px #ff2038,0 6px 18px #000b;overflow:hidden}
+.bossGlobalHpFill{position:absolute;left:5px;bottom:5px;height:calc(100% - 10px);width:0;background:linear-gradient(90deg,#6c0712,#e71931 48%,#ff6773);box-shadow:inset 0 2px #ffabb1,0 0 13px #ff132d;transition:width .06s linear,height .12s linear}
+.bossGlobalHp.docked .bossGlobalHpFill{width:calc(100% - 10px)}
+.bossGlobalHpName{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;color:#ffd8d8;font-weight:900;font-size:14px;letter-spacing:.18em;text-shadow:0 2px 3px #000,0 0 8px #e71931}
+.bossGlobalHp.docked .bossGlobalHpName{font-size:11px;writing-mode:vertical-rl;left:-18px;bottom:auto;top:0;transform:none;letter-spacing:.08em}
+
 </style>
 </head>
 <body>
@@ -1509,23 +1524,62 @@ function armLevel9MinerSpawns(){
     say('最后阶段：矿工僵尸成组钻入草坪！');
   }
 }
+function ensureBossPresentation(){
+  let alert=document.getElementById('bossCinematicAlert');
+  if(!alert){alert=document.createElement('div');alert.id='bossCinematicAlert';alert.className='bossCinematicAlert';alert.innerHTML='<span>感染源靠近</span>';battleRoot.appendChild(alert);}
+  let hud=document.getElementById('bossGlobalHp');
+  if(!hud){hud=document.createElement('div');hud.id='bossGlobalHp';hud.className='bossGlobalHp';hud.innerHTML='<div class="bossGlobalHpName">感染源 · 战车工头</div><div class="bossGlobalHpFrame"><div class="bossGlobalHpFill"></div></div>';battleRoot.appendChild(hud);}
+  return {alert,hud,fill:hud.querySelector('.bossGlobalHpFill')};
+}
+function updateBossPresentation(){
+  const ui=ensureBossPresentation(),e=currentLevel===10?level10Boss:null;
+  const warning=!!e&&e.phase==='warning';
+  ui.alert.classList.toggle('show',warning);battleRoot.classList.toggle('bossWarningShake',warning);
+  const boss=e&&zombies.find(z=>z.type==='workboss'&&z.hp>0);
+  const visible=!!boss&&Number.isFinite(e.hudAge);
+  ui.hud.classList.toggle('show',visible);
+  ui.hud.classList.toggle('docked',visible&&e.hudAge>=1.35);
+  if(!visible){ui.fill.style.width='0';ui.fill.style.height='calc(100% - 10px)';return;}
+  if(e.hudAge<1.35){
+    const charge=Math.max(0,Math.min(1,e.hudAge/1.12));
+    ui.fill.style.width=`calc(${(charge*100).toFixed(2)}% - ${(charge*10).toFixed(1)}px)`;
+    ui.fill.style.height='calc(100% - 10px)';
+  }else{
+    const hp=Math.max(0,Math.min(1,boss.hp/boss.maxHp));
+    ui.fill.style.width='calc(100% - 10px)';ui.fill.style.height=`calc(${(hp*100).toFixed(2)}% - ${(hp*10).toFixed(1)}px)`;
+  }
+}
 function startLevel10Boss(){
-  level10Boss={age:0,emitted:0,groupReleased:0,releaseClock:0,phase:'entrance',intermissionAge:0,attackStep:0,target:null,lastTargetId:null,truckOpen:0};
-  const boss=makeZombie('workboss',2,8.65);boss.hp=1400;boss.maxHp=1400;boss.bossUnit=true;boss.teleportFx=0;boss.smashTime=0;zombies.push(boss);
-  say('战车驶入——装卸板正在打开！');playSfx('metalBuild',1.1,'bossTruck',300,8.8);
+  level10Boss={age:0,emitted:0,groupReleased:0,releaseClock:0,phase:'warning',intermissionAge:0,attackStep:0,target:null,lastTargetId:null,truckOpen:0,hudAge:null,bossSpawned:false};
+  ensureBossPresentation();updateBossPresentation();
+  say('感染源靠近');playSfx('metalHit',1.15,'bossWarning',220,8.8);
 }
 function updateLevel10(dt){
-  if(currentLevel!==10)return;
-  // The truck is the finale, not the opening frame. Let the level's normal
-  // prelude spawn first; only then does the truck enter and take over music.
-  if(!level10Boss){if(spawned>=level10IntroTarget)startLevel10Boss();return;}
-  const e=level10Boss,wasBossMusic=e.musicSwitched;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-1.2)/5.6));
-  if(!wasBossMusic&&e.age>=6.85){e.musicSwitched=true;playBossBgm();say('战车货梯完全打开——Boss 战开始！');}
+  if(currentLevel!==10){battleRoot.classList.remove('bossWarningShake');return;}
+  // The Boss event begins only after every prelude enemy has actually been cleared.
+  if(!level10Boss){
+    if(spawned>=level10IntroTarget&&!zombies.some(z=>z.hp>0))startLevel10Boss();
+    return;
+  }
+  const e=level10Boss;e.age+=dt;
+  if(e.phase==='warning'){
+    updateBossPresentation();
+    if(e.age<2.15)return;
+    e.phase='truckEntrance';say('警报确认——战车正在驶入！');playSfx('metalBuild',1.1,'bossTruck',300,8.8);
+  }
+  e.truckOpen=Math.min(1,Math.max(0,(e.age-3.30)/5.6));
+  if(!e.bossSpawned&&e.age>=9.05){
+    e.bossSpawned=true;e.phase='bossReveal';e.hudAge=0;
+    const boss=makeZombie('workboss',2,8.65);boss.hp=1400;boss.maxHp=1400;boss.bossUnit=true;boss.teleportFx=.65;boss.smashTime=0;boss.bossHitFx=0;zombies.push(boss);
+    e.musicSwitched=true;playBossBgm();say('感染源现身——Boss 战开始！');
+  }
   const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);
-  if(!boss){e.phase='defeated';e.emitted=12;spawned=Math.max(spawned,LEVELS[10].total);return;}
-  boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);
-  if(e.age<7.15){e.phase='entrance';return;}
-  if(e.phase==='entrance'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
+  if(!e.bossSpawned){updateBossPresentation();return;}
+  if(!boss){e.phase='defeated';e.emitted=12;spawned=Math.max(spawned,LEVELS[10].total);updateBossPresentation();return;}
+  e.hudAge+=dt;boss.teleportFx=Math.max(0,(boss.teleportFx||0)-dt);boss.smashTime=Math.max(0,(boss.smashTime||0)-dt);boss.bossHitFx=Math.max(0,(boss.bossHitFx||0)-dt);
+  updateBossPresentation();
+  if(e.phase==='bossReveal'&&e.hudAge<2.45)return;
+  if(e.phase==='bossReveal'){e.phase='release';e.releaseClock=0;e.groupReleased=0;}
   if(e.phase==='release'&&e.emitted<12){
     e.releaseClock-=dt;
     if(e.releaseClock<=0){
@@ -1747,6 +1801,7 @@ function damageZombie(z,dmg,source=null,isFireDamage=false){
     const bodyBefore=z.hp;
     z.hp-=dmg;
     bodyLost=Math.max(0,bodyBefore-Math.max(0,z.hp));
+    if(bodyLost>0&&z.type==='workboss'){z.bossHitFx=.24;z.bossHitFire=!!isFireDamage;}
     if(bodyLost>0&&(z.maxHp||0)>0){
       hpBreakFx.push({
         id:nextId++,zombieId:z.id,x:z.x,row:z.row,age:0,life:.54,
@@ -4460,7 +4515,9 @@ function drawWorkBoss(c,z){
   c.save();c.translate(frontX,frontY);c.rotate(smashing?(-1.15+swing*1.65):-.42);c.strokeStyle='#30383b';c.lineWidth=7;c.beginPath();c.moveTo(0,0);c.lineTo(-2,-39);c.stroke();c.strokeStyle='#9ba7aa';c.lineWidth=3;c.beginPath();c.moveTo(0,0);c.lineTo(-2,-39);c.stroke();c.fillStyle='#596469';c.beginPath();c.arc(-2,-44,10,.35,Math.PI*1.65);c.lineTo(-2,-44);c.closePath();c.fill();c.restore();
   c.fillStyle='#78855b';c.fillRect(-13,-29,26,21);c.fillStyle='#98a56c';c.strokeStyle='#3e472f';c.lineWidth=3;c.beginPath();c.ellipse(0,-42,21,23,0,0,Math.PI*2);c.fill();c.stroke();
   c.fillStyle='#151b1c';c.fillRect(-23,-52,46,7);c.fillStyle='#8dd4df';c.fillRect(-15,-46,11,7);c.fillRect(4,-46,11,7);c.strokeStyle='#151c1e';c.lineWidth=3;c.strokeRect(-15,-46,11,7);c.strokeRect(4,-46,11,7);
-  c.strokeStyle='#30383b';c.lineWidth=4;c.beginPath();c.moveTo(17,-27);c.lineTo(26,-20);c.lineTo(20,-13);c.stroke();c.restore();
+  c.strokeStyle='#30383b';c.lineWidth=4;c.beginPath();c.moveTo(17,-27);c.lineTo(26,-20);c.lineTo(20,-13);c.stroke();
+  if((z.bossHitFx||0)>0){const a=Math.min(.72,z.bossHitFx/.24*.72);c.globalCompositeOperation='source-atop';c.globalAlpha=a;c.fillStyle=z.bossHitFire?'#ff4d18':'#f2f3ef';c.fillRect(-75,-90,150,180);c.globalCompositeOperation='source-over';c.globalAlpha=1;}
+  c.restore();
 }
 function drawBossTruck(c,open=0){
   const w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);c.save();c.translate(w*.5,h*.5);c.scale(w/220,h/220);
@@ -4583,8 +4640,8 @@ function render(){
     d.style.width=(3.2/COLS*100)+'%';d.style.height=(100/ROWS*3.12)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
     const c=document.createElement('canvas');c.width=200;c.height=220;c.style.width='100%';c.style.height='100%';drawBossTruck(c.getContext('2d'),ext);d.appendChild(c);frameUnits.appendChild(d);
   }
-  if(currentLevel===10&&level10Boss){
-    const drive=Math.max(0,Math.min(1,level10Boss.age/1.15)),driveEase=drive*drive*(3-2*drive),truckX=11.60+(9.35-11.60)*driveEase;
+  if(currentLevel===10&&level10Boss&&level10Boss.age>=2.15){
+    const drive=Math.max(0,Math.min(1,(level10Boss.age-2.15)/1.15)),driveEase=drive*drive*(3-2*drive),truckX=11.60+(9.35-11.60)*driveEase;
     if(level10Boss.truckOpen>.01){
       const ramp=document.createElement('div');ramp.className='entity raidRamp';ramp.style.left=pctX(truckX-1.82);ramp.style.top=pctY(ROWS/2);ramp.style.width=(4.8/COLS*100)+'%';ramp.style.height=(100/ROWS*3.12)+'%';ramp.style.zIndex='4';ramp.style.pointerEvents='none';
       const rc=document.createElement('canvas');rc.width=MOBILE_PERF?300:480;rc.height=MOBILE_PERF?160:220;rc.style.width='100%';rc.style.height='100%';drawRaidRamp(rc.getContext('2d'),level10Boss.truckOpen,false);ramp.appendChild(rc);frameUnits.appendChild(ramp);
@@ -4773,7 +4830,7 @@ function render(){
     if(z.type==='workboss'){
       d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(z.row+.5);d.style.width=(1.38/COLS*100)+'%';d.style.height=(100/ROWS*1.72)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
       const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc.getContext('2d'),z);d.appendChild(bc);
-      const hp=document.createElement('div');hp.className='bossHp';const fill=document.createElement('div');fill.className='bossHpFill';fill.style.width=(Math.max(0,Math.min(1,z.hp/z.maxHp))*100)+'%';hp.appendChild(fill);d.appendChild(hp);frameUnits.appendChild(d);continue;
+      frameUnits.appendChild(d);continue;
     }
     const bitePhase=z.eating?((z.attack%0.7)/0.7):0;
     if(z.type==='imp'){
@@ -4948,7 +5005,7 @@ function startLevel(n){
   cancelAnimationFrame(battleBgmFadeRAF);battleBgmFadeRAF=0;
   if(battleBgm){battleBgm.pause();battleBgm.currentTime=0;battleBgm.volume=battleTargetVolume();}
   stopBossBgm();
-  level10Boss=null;level10IntroTarget=10;
+  level10Boss=null;level10IntroTarget=10;battleRoot.classList.remove('bossWarningShake');document.getElementById('bossCinematicAlert')?.classList.remove('show');document.getElementById('bossGlobalHp')?.classList.remove('show','docked');
   currentLevel=n;const cfg=LEVELS[n];ROWS=cfg.rows.length;buildGrid();
   battleRoot.classList.remove('out');levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');rewardStage.classList.remove('go');
   plants=[];zombies=[];brainDrops=[];level8FlagIndex=0;level8FlagBurst=[];level9MinerQueue=[];level9MinerIntroDone=false;level9MinerMidDone=false;level9MinerLateDone=false;peas=[];suns=[];looseBuckets=[];looseBucketDrag=null;magnetFx=[];deathFx=[];coneFx=[];blastFx=[];peaImpactFx=[];bloodFx=[];deathBloodDrops=[];groundBloodFx=[];armFx=[];hpBreakFx=[];fireTiles=[];chainsawFx=[];chainsaws=cfg.rows.map(row=>({row,used:false,active:false,x:-.08}));document.getElementById('infectionOverlay')?.classList.remove('show');cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,glove:0};sun=cfg.initialSun;kills=0;spawned=0;selected=null;running=false;battleStarted=false;glovePlantId=null;gloveFx=null;gloveFx=null;ended=false;levelCompletePending=false;nextId=1;
