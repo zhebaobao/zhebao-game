@@ -816,6 +816,7 @@ function fadeBattleBgm(target,duration=520){
 }
 function playBattleBgm(){
   if(!battleBgm||musicMuted)return;
+  if(currentLevel===10&&level10Boss?.musicSwitched){playBossBgm();return;}
   // Pause the menu track immediately. A long fade can keep two media elements active
   // and makes some mobile WebViews reject the second play() call.
   if(idleBgm&&!idleBgm.paused)idleBgm.pause();
@@ -846,7 +847,14 @@ function stopBossBgm(){if(bossBgm&&!bossBgm.paused){bossBgm.pause();bossBgm.curr
 function syncGameMusic(){
   if(musicMuted)return;
   if(battleStarted&&running&&!ended){
-    if(battleBgm?.paused)playBattleBgm();
+    const bossActive=currentLevel===10&&!!level10Boss?.musicSwitched;
+    if(bossActive){
+      if(battleBgm&&!battleBgm.paused){battleBgm.pause();battleBgm.currentTime=0;}
+      if(bossBgm?.paused)playBossBgm();
+    }else{
+      stopBossBgm();
+      if(battleBgm?.paused)playBattleBgm();
+    }
   }else{
     stopBossBgm();
     if(battleBgm&&!battleBgm.paused){battleBgm.pause();battleBgm.currentTime=0;}
@@ -859,6 +867,7 @@ function syncGameMusic(){
 async function unlockGameAudio(){
   if(musicMuted)return false;
   let ok=false;
+  const bossActive=!!(currentLevel===10&&level10Boss?.musicSwitched&&running&&!ended);
   // Unlock both HTMLMediaElements inside the user's gesture. This is important on
   // iOS/Android WebViews: unlocking only the menu track may leave battle music blocked.
   for(const media of [idleBgm,battleBgm,bossBgm]){
@@ -868,15 +877,18 @@ async function unlockGameAudio(){
       media.volume=.001;
       await media.play();
       ok=true;
-      if((media===battleBgm||media===bossBgm)&&!battleStarted){media.pause();media.currentTime=0;}
-      else if(media===idleBgm&&battleStarted){media.pause();}
-      if(wasPaused&&(media===battleBgm||media===bossBgm)&&!battleStarted)media.pause();
+      // The unlock probe briefly calls play(), but exactly one soundtrack may
+      // remain active after it: menu, battle, or Boss.
+      const keepPlaying=media===bossBgm?bossActive:(media===battleBgm?(battleStarted&&running&&!ended&&!bossActive):!(battleStarted&&running&&!ended));
+      if(!keepPlaying){media.pause();if(media!==idleBgm)media.currentTime=0;}
       media.volume=oldVol;
     }catch(e){media.volume=oldVol;}
   }
   if(ok){
     audioUnlocked=true;idleBgmUnlocked=true;
-    if(battleStarted&&running&&!ended)playBattleBgm(); else playIdleBgm();
+    if(bossActive)playBossBgm();
+    else if(battleStarted&&running&&!ended)playBattleBgm();
+    else playIdleBgm();
     updateMusicControls();
   }
   return ok;
@@ -1069,12 +1081,12 @@ const LEVELS={
   7:{total:26,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,initialSun:175,firstDelay:7.5,spawnMin:6.0,spawnMax:8.2},
   8:{total:28,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,initialSun:200,firstDelay:7.0,spawnMin:5.8,spawnMax:7.9},
   9:{total:32,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,imps:true,longhairs:true,brains:true,miners:true,initialSun:225,firstDelay:7.0,spawnMin:5.4,spawnMax:7.4},
-  10:{total:18,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:2.5,spawnMin:99,spawnMax:99}
+  10:{total:22,rows:[0,1,2,3,4],plants:['pea','sunflower','wall','potato','fan','magnet','crossfan'],cones:true,buckets:true,crawlers:true,brains:true,initialSun:250,firstDelay:4.5,spawnMin:5.5,spawnMax:7.5}
 };
 const costs={pea:125,sunflower:50,wall:50,potato:25,fan:175,lighter:75,magnet:100,crossfan:150},maxHP={pea:100,sunflower:100,wall:1000,potato:100,fan:160,lighter:24,magnet:120,crossfan:140},cooldownMax={pea:2,sunflower:2,wall:15,potato:10,fan:20,lighter:10,magnet:12,crossfan:18,glove:5};
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,magnetUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 const TEST_MODE=true;
-let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null;
+let level8FlagIndex=0,level8FlagBurst=[],level9MinerQueue=[],level9MinerIntroDone=false,level9MinerMidDone=false,level9MinerLateDone=false,level10Boss=null,level10IntroTarget=4;
 async function requestGameFullscreen(){
   const el=document.documentElement;
   if(document.fullscreenElement||document.webkitFullscreenElement)return true;
@@ -1299,21 +1311,28 @@ function magnetAbsorb(p){
   say('吸铁石吸下 1 个铁桶！铁桶会停在吸铁石头上，可拖到任意植物上。冷却 10 秒。');
   return true;
 }
-function waveProgress(){if(currentLevel===7&&level7Event)return Math.min(1,((level7Event.wave-1)+Math.min(1,level7Event.waveSpawned[level7Event.wave-1]/Math.max(1,level7Event.waveTargets[level7Event.wave-1])))/4);const cfg=LEVELS[currentLevel];return cfg.total?Math.min(1,spawned/cfg.total):0;}
-function waveStage(){if(currentLevel===7&&level7Event)return level7Event.wave-1;return Math.min(3,Math.floor(waveProgress()*4));}
+function waveProgress(){
+  if(currentLevel===7&&level7Event)return Math.min(1,((level7Event.wave-1)+Math.min(1,level7Event.waveSpawned[level7Event.wave-1]/Math.max(1,level7Event.waveTargets[level7Event.wave-1])))/4);
+  // Level 10 has a short ground prelude followed by the truck's 18 releases.
+  // Keep the progress meter tied to those two phases instead of jumping to the
+  // final flag as soon as the boss starts emitting.
+  if(currentLevel===10){const released=level10Boss?.emitted||0;return level10Boss?Math.min(1,(level10IntroTarget+released)/(level10IntroTarget+18)):Math.min(.42,spawned/Math.max(1,level10IntroTarget)*.42);}
+  const cfg=LEVELS[currentLevel];return cfg.total?Math.min(1,spawned/cfg.total):0;
+}
+function waveStage(){if(currentLevel===7&&level7Event)return level7Event.wave-1;if(currentLevel===10)return level10Boss?3:Math.min(2,Math.floor(waveProgress()*4));return Math.min(3,Math.floor(waveProgress()*4));}
 function hasMidWave(){return currentLevel>=3;}
 let lastWaveUIKey='';
 function updateWaveUI(){
   if(!waveFill)return;
   const p=waveProgress();
-  const stage=currentLevel===8?Math.min(3,Math.floor(p*3)+1):(currentLevel===7&&level7Event?level7Event.wave:Math.min(4,Math.floor(p*4)+1));
-  const state=currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':''));
+  const stage=currentLevel===8?Math.min(3,Math.floor(p*3)+1):(currentLevel===10?(level10Boss?4:Math.min(3,Math.floor(p*4)+1)):(currentLevel===7&&level7Event?level7Event.wave:Math.min(4,Math.floor(p*4)+1)));
+  const state=currentLevel===10?(level10Boss?(level10Boss.phase==='attack'?'Boss 出击':'战车突袭'):'前置尸潮'):(currentLevel===7&&level7Event?(level7Event.firstGate?'首敌锁定':(level7Event.planes?.length?'五机突袭':(level7Event.buildAge>0?'铁架施工':''))):(finalRaidBusy()?'卸货突袭':(waveBurstRemaining>0?'尸潮':'')));
   const surge=(finalRaidBusy()||waveBurstRemaining>0)&&wavePulseTimer>0;
   const key=[currentLevel,p,stage,state,surge].join('|');
   if(key===lastWaveUIKey)return;
   lastWaveUIKey=key;
   waveFill.style.width=(p*100)+'%';
-  waveStageText.textContent=currentLevel===8?`第 ${stage}/3 波`:`第 ${stage}/4 波`;
+  waveStageText.textContent=currentLevel===8?`第 ${stage}/3 波`:(currentLevel===10?(level10Boss?'Boss 战':`第 ${stage}/4 波`):`第 ${stage}/4 波`);
   waveMidFlag.style.display=hasMidWave()?'block':'none';
   waveMidFlag.classList.toggle('reached',hasMidWave()&&p>=(currentLevel===8?1/3:.5));
   waveFinalFlag.classList.toggle('reached',p>=(currentLevel===8?2/3:.75));
@@ -1348,7 +1367,7 @@ function triggerWave(kind){
   updateWaveUI();
 }
 function checkWaveTrigger(){
-  if(currentLevel===7)return;
+  if(currentLevel===7||currentLevel===10)return;
   const p=waveProgress();
   if(hasMidWave()&&!waveTriggeredMid&&p>=.5)triggerWave('mid');
   const finalThreshold=.75;
@@ -1471,17 +1490,19 @@ function startLevel10Boss(){
 }
 function updateLevel10(dt){
   if(currentLevel!==10)return;
-  if(!level10Boss){startLevel10Boss();return;}
-  const e=level10Boss,wasBossMusic=e.musicSwitched;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-.4)/1.8));
-  if(!wasBossMusic&&e.age>=2.4){e.musicSwitched=true;playBossBgm();say('战车货梯完全打开——Boss 战开始！');}
+  // The truck is the finale, not the opening frame. Let the level's normal
+  // prelude spawn first; only then does the truck enter and take over music.
+  if(!level10Boss){if(spawned>=level10IntroTarget)startLevel10Boss();return;}
+  const e=level10Boss,wasBossMusic=e.musicSwitched;e.age+=dt;e.truckOpen=Math.min(1,Math.max(0,(e.age-1.0)/1.5));
+  if(!wasBossMusic&&e.age>=2.6){e.musicSwitched=true;playBossBgm();say('战车货梯完全打开——Boss 战开始！');}
   const boss=zombies.find(z=>z.type==='workboss'&&z.hp>0);if(!boss)return;
   if(e.age<3.0){e.phase='entrance';return;}
   if(e.emitted<18&&e.phase==='entrance'){
     e.releaseClock-=dt;
     if(e.releaseClock<=0){
       const types=['crawler','normal','cone','crawler','brain','normal'];
-      const type=types[e.emitted%types.length],row=LEVELS[10].rows[e.emitted%LEVELS[10].rows.length];
-      const z=makeZombie(type,row,10.35);z.bossSlide={age:0,dur:.46,start:10.35,end:5.05};z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;spawned++;e.releaseClock=.34;
+      const type=types[e.emitted%types.length],truckRows=[1,2,3],row=truckRows[e.emitted%truckRows.length];
+      const z=makeZombie(type,row,10.35);z.bossSlide={age:0,dur:.46,start:10.35,end:5.05};z.hitStun=0;z.hurt=0;zombies.push(z);e.emitted++;spawned++;e.releaseClock=.72;
       playSfx('metalHit',.6,'bossDrop',100,8.8);
       if(e.emitted%6===0){e.phase='attack';e.attackStep=0;e.attackClock=0;e.target=null;}
     }
@@ -1784,7 +1805,8 @@ function update(dt){
   updateLevel4FinalRaid(dt);
   updateLevel7(dt);
   updateLevel10(dt);
-  if(currentLevel!==7&&currentLevel!==10&&!finalRaidBusy()&&spawned<LEVELS[currentLevel].total&&spawnClock>=nextSpawnDelay){spawnClock=0;if(currentLevel===8)armLevel8FlagIfNeeded();if(currentLevel===9)armLevel9MinerSpawns();spawnZombie()}
+  const level10Prelude=currentLevel===10&&!level10Boss&&spawned<level10IntroTarget;
+  if(currentLevel!==7&&!finalRaidBusy()&&(currentLevel!==10||level10Prelude)&&spawned<LEVELS[currentLevel].total&&spawnClock>=nextSpawnDelay){spawnClock=0;if(currentLevel===8)armLevel8FlagIfNeeded();if(currentLevel===9)armLevel9MinerSpawns();spawnZombie()}
   if(currentLevel===5&&waveStage()>=2&&spawned<LEVELS[currentLevel].total&&impSpawnClock>=nextImpSpawnDelay)forceSpawnImp();
   updateWaveUI()
   if(skySunClock>=10){skySunClock-=10;createSkySun()}
@@ -4475,15 +4497,18 @@ function render(){
   // Fourth-level finale uses the same three-lane battle truck as level 10.
   if(finalRaidBusy()){
     const r=finalRaid;
-    let ext=Math.max(0,Math.min(1,r.age/r.extendDur));
+    const drive=Math.max(0,Math.min(1,r.age/.95)),driveEase=drive*drive*(3-2*drive);
+    const truckX=10.85+(8.75-10.85)*driveEase;
+    let ext=Math.max(0,Math.min(1,(r.age-.78)/Math.max(.2,r.extendDur-.78)));
     if(r.closing)ext*=Math.max(0,1-r.closeAge/1.25);
-    const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(8.75);d.style.top=pctY(2.5);
+    const d=document.createElement('div');d.className='entity raidRamp';d.style.left=pctX(truckX);d.style.top=pctY(ROWS/2);
     d.style.width=(2.35/COLS*100)+'%';d.style.height=(100/ROWS*3.05)+'%';d.style.zIndex='12';d.style.pointerEvents='none';
-    const c=document.createElement('canvas');c.width=160;c.height=204;c.style.width='100%';c.style.height='100%';drawBossTruck(c,ext);d.appendChild(c);frameUnits.appendChild(d);
+    const c=document.createElement('canvas');c.width=160;c.height=204;c.style.width='100%';c.style.height='100%';drawBossTruck(c.getContext('2d'),ext);d.appendChild(c);frameUnits.appendChild(d);
   }
   if(currentLevel===10&&level10Boss){
-    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(8.75);truck.style.top=pctY(2.5);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
-    const tc=document.createElement('canvas');tc.width=160;tc.height=204;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc,level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
+    const drive=Math.max(0,Math.min(1,level10Boss.age/1.15)),driveEase=drive*drive*(3-2*drive),truckX=10.85+(8.75-10.85)*driveEase;
+    const truck=document.createElement('div');truck.className='entity raidRamp';truck.style.left=pctX(truckX);truck.style.top=pctY(ROWS/2);truck.style.width=(2.35/COLS*100)+'%';truck.style.height=(100/ROWS*3.05)+'%';truck.style.zIndex='12';truck.style.pointerEvents='none';
+    const tc=document.createElement('canvas');tc.width=160;tc.height=204;tc.style.width='100%';tc.style.height='100%';drawBossTruck(tc.getContext('2d'),level10Boss.truckOpen);truck.appendChild(tc);frameUnits.appendChild(truck);
   }
   if(currentLevel===7&&level7Event){
     const e=level7Event;
@@ -4665,7 +4690,7 @@ function render(){
     const d=document.createElement('div');d.className='entity zombie'+(z.eating?' bite':'')+((z.hurt>0||z.stun>0)?' hurt':'')+(z.fanSlow?' chilled':'')+(z.brainDropId?' brainEating':'');
     if(z.type==='workboss'){
       d.classList.add('workBoss');d.style.left=pctX(z.x);d.style.top=pctY(2.5);d.style.width=(2.25/COLS*100)+'%';d.style.height=(100/ROWS*2.7)+'%';d.style.zIndex='18';d.style.pointerEvents='none';
-      const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc,z);d.appendChild(bc);
+      const bc=document.createElement('canvas');bc.width=150*MOBILE_RENDER_SCALE;bc.height=180*MOBILE_RENDER_SCALE;bc.style.width='100%';bc.style.height='100%';drawWorkBoss(bc.getContext('2d'),z);d.appendChild(bc);
       const hp=document.createElement('div');hp.className='bossHp';const fill=document.createElement('div');fill.className='bossHpFill';fill.style.width=(Math.max(0,Math.min(1,z.hp/z.maxHp))*100)+'%';hp.appendChild(fill);d.appendChild(hp);frameUnits.appendChild(d);continue;
     }
     const bitePhase=z.eating?((z.attack%0.7)/0.7):0;
@@ -4838,7 +4863,7 @@ function applyLevelUI(){
   document.querySelector('.sub').textContent=subMap[currentLevel]||`1-${currentLevel} · 测试关卡`;
 }
 function startLevel(n){
-  level10Boss=null;
+  level10Boss=null;level10IntroTarget=4;
   currentLevel=n;const cfg=LEVELS[n];ROWS=cfg.rows.length;buildGrid();
   battleRoot.classList.remove('out');levelScreen.classList.remove('show');plantSelectScreen.classList.remove('show');rewardOverlay.classList.remove('show');rewardStage.classList.remove('go');
   plants=[];zombies=[];brainDrops=[];level8FlagIndex=0;level8FlagBurst=[];level9MinerQueue=[];level9MinerIntroDone=false;level9MinerMidDone=false;level9MinerLateDone=false;peas=[];suns=[];looseBuckets=[];looseBucketDrag=null;magnetFx=[];deathFx=[];coneFx=[];blastFx=[];peaImpactFx=[];bloodFx=[];deathBloodDrops=[];groundBloodFx=[];armFx=[];hpBreakFx=[];fireTiles=[];chainsawFx=[];chainsaws=cfg.rows.map(row=>({row,used:false,active:false,x:-.08}));document.getElementById('infectionOverlay')?.classList.remove('show');cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,glove:0};sun=cfg.initialSun;kills=0;spawned=0;selected=null;running=false;battleStarted=false;glovePlantId=null;gloveFx=null;gloveFx=null;ended=false;levelCompletePending=false;nextId=1;
