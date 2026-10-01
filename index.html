@@ -574,6 +574,26 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
   .almanacPanel{height:calc(100dvh - max(18px,env(safe-area-inset-top)) - max(22px,env(safe-area-inset-bottom)))!important;max-height:none!important;margin:auto!important}
 }
 
+
+/* Final-stage ending and compact, reliably scrollable loadout picker */
+.thanksOverlay{position:fixed;inset:0;z-index:230;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at 50% 38%,rgba(113,24,25,.42),rgba(5,8,6,.94) 58%);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .38s ease,visibility .38s step-end}
+.thanksOverlay.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .38s ease}
+.thanksCard{width:min(88vw,520px);padding:32px 24px;text-align:center;border:4px solid #b69b55;background:linear-gradient(180deg,#33462d,#172319);box-shadow:0 0 0 4px #111,0 18px 50px #000}
+.thanksCard small{display:block;color:#d9c77d;letter-spacing:.22em}.thanksCard strong{display:block;margin:10px 0 6px;color:#fff0ac;font-size:clamp(36px,8vw,64px);text-shadow:4px 4px 0 #6e171c}.thanksCard p{color:#d9e3ce;margin:0 0 22px}
+.plantSelectPanel{box-sizing:border-box}
+.plantPool{scrollbar-width:thin;scrollbar-color:#829965 #172518}
+@media (pointer:coarse){
+  .plantSelectPanel{width:min(96vw,720px)!important;padding:6px 10px 8px!important}
+  .plantSelectPanel h2{font-size:20px!important;line-height:1.1;margin-bottom:2px!important}
+  .plantSelectPanel p{margin-bottom:5px!important;line-height:1.2}
+  .chosenTray{min-height:58px!important;padding:4px!important;margin-bottom:5px!important;gap:4px!important}
+  .traySlot{height:52px!important}.trayCard{height:50px!important}.trayCard canvas{width:34px!important;height:34px!important}
+  .plantPool{min-height:0!important;overflow-y:scroll!important;overscroll-behavior:contain;touch-action:pan-y!important;padding:4px 4px 22px!important;align-content:flex-start!important}
+  .pickCard{width:82px!important;height:91px!important;touch-action:pan-y!important}
+  .pickCard canvas.art{width:48px!important;height:48px!important}
+  .selectActions{position:static!important;margin:5px 0 0!important;padding:4px 0 max(5px,env(safe-area-inset-bottom))!important;background:#172818!important}
+}
+
 </style>
 </head>
 <body>
@@ -735,6 +755,15 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
     <div class="infectionBlood"></div>
     <strong>你被感染了</strong>
     <small>防线已经被突破</small>
+  </div>
+</div>
+
+<div class="thanksOverlay" id="thanksOverlay" aria-hidden="true">
+  <div class="thanksCard">
+    <small>第一阶段完成</small>
+    <strong>感谢游玩</strong>
+    <p>你已经守住了目前设计的全部十个关卡。</p>
+    <button class="btn primary" id="thanksReturn" type="button">返回主菜单</button>
   </div>
 </div>
 
@@ -1208,7 +1237,7 @@ function applyBurn(z,total=20,duration=2,source='firePeaBurn'){
 }
 function updatePlantTargets(){
   const cfg=LEVELS[currentLevel];
-  const planting=!!selected&&selected!=='shovel'&&selected!=='glove'&&(!TEST_MODE?selectedPlants.includes(selected):true);
+  const planting=!!selected&&selected!=='shovel'&&selected!=='glove'&&(TEST_MODE||FINAL_TEST_UNLOCK_ALL||selectedPlants.includes(selected));
   document.querySelectorAll('.cell').forEach(c=>{
     const r=+c.dataset.row,col=+c.dataset.col;
     const existing=plantAt(r,col);
@@ -1297,7 +1326,7 @@ function place(r,c){
     glovePlantId=null;cooldowns.glove=5;updateCooldownUI();return
   }
   if(!selected){say('先选择一株植物。');return}
-  if(selected!=='shovel'&&selected!=='glove'&&!TEST_MODE&&!selectedPlants.includes(selected)){say('这一关还不能使用这个植物。');return}
+  if(selected!=='shovel'&&selected!=='glove'&&!TEST_MODE&&!FINAL_TEST_UNLOCK_ALL&&!selectedPlants.includes(selected)){say('这一关还不能使用这个植物。');return}
   if(selected==='shovel'){if(old){playSfx('shovel',1,'shovel',80,old.col+.5);plants=plants.filter(p=>p!==old);say('植物已铲除。');updatePlantTargets()}return}
   const lighterUpgrade=selected==='lighter'&&old&&(old.type==='pea'||old.type==='wall')&&!old.fireMode;
   if(old&&!lighterUpgrade){
@@ -1788,6 +1817,10 @@ function triggerChainsaw(row){
   say('血锯启动！锯片碰到丧尸时才会将它切倒。');
   return true;
 }
+function showThanksEnding(){
+  const o=document.getElementById('thanksOverlay');
+  if(o){o.classList.add('show');o.setAttribute('aria-hidden','false');}
+}
 function showInfection(){
   const o=document.getElementById('infectionOverlay');
   if(o){o.classList.add('show');o.setAttribute('aria-hidden','false');}
@@ -2034,9 +2067,9 @@ function update(dt){
     p.lastFrame=Math.floor((gameTime*6+p.id)%4);
     if((p.plantingAge??.56)<.56)continue;
     if(p.type==='sunflower'){
-      p.charge=Math.min(1,p.produce/9.43);
+      p.charge=Math.min(1,p.produce/11);
       p.produce+=dt;
-      if(p.produce>=9.43){p.produce=0;createPlantSun(p)}
+      if(p.produce>=11){p.produce=0;createPlantSun(p)}
     }
     if(p.type==='pea'){
       if(p.fireTransform>0)continue;
@@ -2413,7 +2446,7 @@ function update(dt){
   for(const fx of chainsawFx){
     if(fx.age>=fx.life)continue;
     for(const z of zombies){
-      if(z.hp<=0||z.row!==fx.row)continue;
+      if(z.hp<=0||z.row!==fx.row||z.type==='workboss')continue;
       if(Math.abs(z.x-fx.x)<=.42){
         z.hp=0;
         z.hitStun=.08;
@@ -5204,6 +5237,7 @@ function finish(win){
   ended=true;running=false;battleRoot.classList.remove('plantBulletTime');stopBattleBgm();syncGameMusic();toggle.disabled=true;toggle.textContent='战斗结束';
   if(!win){playSfx('lose',1.15,'finish',1000);say('防线被突破，你被感染了。');showInfection();return}
   playSfx('win',1.1,'finish',1000);say('守住了！关卡完成！');markLevelComplete(currentLevel);
+  if(currentLevel===10){setTimeout(showThanksEnding,650);return;}
   const reward=LEVEL_PLANT_REWARDS[currentLevel];
   if(reward&&!isPlantUnlocked(reward)){rewardType=reward;pendingLevel=currentLevel;selectedPlants=[];setTimeout(showReward,420);}
   else setTimeout(showLevelSelect,650);
@@ -5558,6 +5592,9 @@ settingsMenu.addEventListener('click',()=>{
 });
 settingsOverlay.addEventListener('click',e=>{if(e.target===settingsOverlay)closeSettings(true)});
 
+document.getElementById('thanksReturn')?.addEventListener('click',()=>{
+  const o=document.getElementById('thanksOverlay');o?.classList.remove('show');o?.setAttribute('aria-hidden','true');showMainMenu();
+});
 document.getElementById('rewardPortrait').src=plantPortraitSrc('wall');
 rewardCard.addEventListener('click',claimReward);
 function drawToolCards(){
