@@ -323,7 +323,7 @@ updateSfxControls();
 
 const waveHud=document.getElementById('waveHud'),waveFill=document.getElementById('waveFill'),waveMidFlag=document.getElementById('waveMidFlag'),waveFinalFlag=document.getElementById('waveFinalFlag'),waveStageText=document.getElementById('waveStageText'),waveStateText=document.getElementById('waveStateText');
 let ROWS=2;const COLS=10;
-const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames}=window.ZHEBAO_CONFIG;
+const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS}=window.ZHEBAO_CONFIG;
 
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 
@@ -4521,13 +4521,7 @@ function openLighterTutorial(){
 function closeLighterTutorial(){try{localStorage.setItem(LIGHTER_TUTOR_KEY,'1')}catch(e){}lighterTutorial.classList.remove('show');lighterTutorial.setAttribute('aria-hidden','true');const r=lighterTutorResolve;lighterTutorResolve=null;if(r)r(true)}
 tutorNext.addEventListener('click',()=>{resumeSfx();if(lighterTutorStep===0){lighterTutorStep=1;runLighterTutorial()}else if(lighterTutorStep===2)closeLighterTutorial()});
 
-const PLANT_PORTRAITS={
-  pea:'./assets/portraits/pea.webp',
-  sunflower:'./assets/portraits/sunflower.webp',
-  wall:'./assets/portraits/wall.webp',
-  potato:'./assets/portraits/potato.webp',
-  fan:'./assets/portraits/fan.webp'
-};
+
 const runtimePortraits={};
 function plantPortraitSrc(t){
   if(PLANT_PORTRAITS[t])return PLANT_PORTRAITS[t]||'';
