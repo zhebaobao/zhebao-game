@@ -1,0 +1,44 @@
+// Single source of truth for browser module loading and registry validation.
+window.ZHEBAO_MODULE_MANIFEST={
+  plants:[
+    {id:'pea',src:'./plants/peashooter.js'},
+    {id:'sunflower',src:'./plants/sunflower.js'},
+    {id:'wall',src:'./plants/wallnut.js'},
+    {id:'potato',src:'./plants/potato-mine.js'},
+    {id:'fan',src:'./plants/cold-fan.js'},
+    {id:'lighter',src:'./plants/lighter.js'},
+    {id:'magnet',src:'./plants/magnet.js'},
+    {id:'crossfan',src:'./plants/cross-fan.js'}
+  ],
+  levels:[
+    {id:1,src:'./levels/level-01.js'},
+    {id:2,src:'./levels/level-02.js'},
+    {id:3,src:'./levels/level-03.js'},
+    {id:4,src:'./levels/level-04.js'},
+    {id:5,src:'./levels/level-05.js'},
+    {id:6,src:'./levels/level-06.js'},
+    {id:7,src:'./levels/level-07.js'},
+    {id:8,src:'./levels/level-08.js'},
+    {id:9,src:'./levels/level-09.js'},
+    {id:10,src:'./levels/level-10.js'}
+  ],
+  zombies:[
+    {id:'normal',src:'./zombies/normal.js'},
+    {id:'cone',src:'./zombies/cone.js'},
+    {id:'bucket',src:'./zombies/bucket.js'},
+    {id:'crawler',src:'./zombies/crawler.js'},
+    {id:'imp',src:'./zombies/imp.js'},
+    {id:'longhair',src:'./zombies/longhair.js'},
+    {id:'brain',src:'./zombies/brain.js'},
+    {id:'giant',src:'./zombies/giant.js'},
+    {id:'miner',src:'./zombies/miner.js'},
+    {id:'workboss',src:'./zombies/workboss.js'}
+  ],
+  runtime:[
+    './js/config/game-config.js',
+    './js/save/progress.js',
+    './js/ui/almanac-data.js',
+    './js/ui/level-select.js',
+    './js/game.js'
+  ]
+};

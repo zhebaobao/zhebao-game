@@ -28,6 +28,7 @@ window.ZHEBAO_LEVELS[7]={
     "spawnMax": 8.2
   },
   "ui": {
+    "cardDescription": "铁架施工 · 飞机投桶突袭",
     "note": "第 7 关：铁架施工 · 飞机投桶突袭",
     "subtitle": "1-7 · 空投突袭 · 铁桶防线"
   }

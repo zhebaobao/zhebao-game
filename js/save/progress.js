@@ -1,7 +1,8 @@
 // Persistent progress serialization. UI refresh and gameplay state remain in js/game.js.
 (()=>{
-function normalize(raw){
-  const c=[...new Set(Array.isArray(raw?.completedLevels)?raw.completedLevels.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=10):[])].sort((a,b)=>a-b);
+function normalize(raw,levelIds){
+  const allowed=Array.isArray(levelIds)&&levelIds.length?new Set(levelIds.map(Number)):null;
+  const c=[...new Set(Array.isArray(raw?.completedLevels)?raw.completedLevels.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&(allowed?allowed.has(n):n<=10)):[])].sort((a,b)=>a-b);
   return {version:2,completedLevels:c,
     wallUnlocked:!!raw?.wallUnlocked||c.includes(1),
     potatoUnlocked:!!raw?.potatoUnlocked||c.includes(2),
@@ -10,10 +11,10 @@ function normalize(raw){
     magnetUnlocked:!!raw?.magnetUnlocked||c.includes(5),
     crossfanUnlocked:!!raw?.crossfanUnlocked||c.includes(6)};
 }
-function read(key){
+function read(key,levelIds){
   try{
     const raw=localStorage.getItem(key);
-    return raw?normalize(JSON.parse(raw)):null;
+    return raw?normalize(JSON.parse(raw),levelIds):null;
   }catch(e){return null}
 }
 function write(key,data){

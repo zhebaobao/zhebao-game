@@ -31,6 +31,7 @@ window.ZHEBAO_LEVELS[8]={
     "spawnMax": 7.9
   },
   "ui": {
+    "cardDescription": "脑浆感染 · 中型巨人变异",
     "note": "第 8 关：脑浆感染 · 三波旗帜 · 解锁十字吹风机",
     "subtitle": "1-8 · 脑浆感染 · 三旗帜增益波"
   }

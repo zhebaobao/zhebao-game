@@ -32,6 +32,7 @@ window.ZHEBAO_LEVELS[9]={
     "spawnMax": 7.4
   },
   "ui": {
+    "cardDescription": "地下威胁 · 矿工破阵",
     "subtitle": "1-9 · 矿工破阵 · 地下威胁"
   }
 };

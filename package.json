@@ -1,0 +1,8 @@
+{
+  "name": "zhebao-game",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "node scripts/validate-project.cjs"
+  }
+}

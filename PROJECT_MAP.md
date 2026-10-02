@@ -6,11 +6,14 @@
 
 | 路径 | 职责 |
 | --- | --- |
-| `index.html` | 页面 DOM 与模块加载顺序 |
+| `index.html` | 页面 DOM 容器；只加载模块清单和启动器 |
+| `js/config/module-manifest.js` | 植物、关卡、僵尸与运行时脚本的唯一加载清单 |
+| `js/bootstrap.js` | 按清单顺序加载模块并启动游戏 |
 | `css/game.css` | UI、响应式布局和 CSS 动画 |
 | `js/config/game-config.js` | 汇总植物、关卡和僵尸注册表；保存测试开关与存档键 |
 | `js/save/progress.js` | 存档规范化与 localStorage 读写 |
 | `js/ui/almanac-data.js` | 图鉴静态名称与说明文字 |
+| `js/ui/level-select.js` | 根据关卡注册表生成选关卡片与关卡编号 |
 | `js/game.js` | 尚未拆出的战斗流程、动画绘制和动态 UI |
 | `assets/portraits/` | 植物立绘资源 |
 
@@ -43,7 +46,7 @@
 
 ## 关卡栏目
 
-`levels/level-01.js` 至 `levels/level-10.js`：每关路线、敌人数、经济、出怪间隔、敌人类型、奖励，以及关卡标题/副标题。修改单关只读取对应文件。
+`levels/level-01.js` 至 `levels/level-10.js`：每关路线、敌人数、经济、出怪间隔、敌人类型、奖励，以及关卡标题/副标题。新增关卡时创建对应文件，并在 `js/config/module-manifest.js` 的 `levels` 清单登记。
 
 ## js/game.js 余下定位
 
@@ -62,10 +65,13 @@
 - [x] Base64 立绘资源化
 - [x] 每种植物独立配置与玩法参数
 - [x] 每个关卡独立数据文件
+- [x] 清单驱动的模块加载与可扩展选关入口
 - [x] 每种僵尸独立基础配置
 - [ ] 植物专属行为函数与绘制迁移
 - [ ] 僵尸 AI、攻击与绘制迁移
 - [x] 存档序列化与图鉴静态数据拆分
 - [ ] 核心战斗与动态 UI 拆分
+
+`npm run check` 可检查脚本语法、清单路径和注册表完整性。
 
 新增、删除、移动文件或改变职责后更新本文件。每次只拆一个低耦合区域，并保持 GitHub Pages 可直接运行。

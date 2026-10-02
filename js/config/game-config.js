@@ -1,14 +1,25 @@
-// Data registry composer. Plant and level files load before this file.
+// Registry composer. The bootstrap loads every manifest entry before this file.
 (()=>{
+const manifest=window.ZHEBAO_MODULE_MANIFEST;
 const plantDefs=window.ZHEBAO_PLANTS||{};
 const levelDefs=window.ZHEBAO_LEVELS||{};
 const zombieDefs=window.ZHEBAO_ZOMBIES||{};
-if(Object.keys(plantDefs).length!==8)throw new Error('Plant configuration is incomplete');
-if(Object.keys(levelDefs).length!==10)throw new Error('Level configuration is incomplete');
-if(Object.keys(zombieDefs).length!==10)throw new Error('Zombie configuration is incomplete');
+if(!manifest)throw new Error('Module manifest is missing');
 
+function validateRegistry(label,entries,registry){
+  const ids=entries.map(entry=>String(entry.id));
+  if(new Set(ids).size!==ids.length)throw new Error(label+' manifest contains duplicate IDs');
+  const missing=ids.filter(id=>!Object.prototype.hasOwnProperty.call(registry,id));
+  if(missing.length)throw new Error(label+' configuration is incomplete: '+missing.join(', '));
+}
+validateRegistry('Plant',manifest.plants,plantDefs);
+validateRegistry('Level',manifest.levels,levelDefs);
+validateRegistry('Zombie',manifest.zombies,zombieDefs);
+
+const LEVEL_IDS=manifest.levels.map(entry=>Number(entry.id));
 const LEVELS={},LEVEL_PLANT_REWARDS={},LEVEL_UI={};
-for(const [id,entry] of Object.entries(levelDefs)){
+for(const id of LEVEL_IDS){
+  const entry=levelDefs[id];
   LEVELS[id]=entry.config;
   LEVEL_UI[id]=entry.ui||{};
   if(entry.reward)LEVEL_PLANT_REWARDS[id]=entry.reward;
@@ -28,5 +39,5 @@ const FINAL_TEST_UNLOCK_ALL=false;
 const SAVE_KEY='pixelLawnBattle.save.v1';
 const PLANT_ARCHETYPES=plantDefs;
 const ZOMBIE_ARCHETYPES=zombieDefs;
-window.ZHEBAO_CONFIG={LEVELS,LEVEL_UI,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES};
+window.ZHEBAO_CONFIG={LEVELS,LEVEL_IDS,LEVEL_UI,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES};
 })();
