@@ -323,7 +323,7 @@ updateSfxControls();
 
 const waveHud=document.getElementById('waveHud'),waveFill=document.getElementById('waveFill'),waveMidFlag=document.getElementById('waveMidFlag'),waveFinalFlag=document.getElementById('waveFinalFlag'),waveStageText=document.getElementById('waveStageText'),waveStateText=document.getElementById('waveStateText');
 let ROWS=2;const COLS=10;
-const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
+const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
 
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 
@@ -386,7 +386,7 @@ function pctX(x){return (x/COLS*100)+'%'}
 function pctY(y){return (y/ROWS*100)+'%'}
 function plantAt(r,c){return plants.find(p=>p.row===r&&p.col===c)}
 function fireTileAt(r,c){return fireTiles.find(t=>t.row===r&&t.col===c)}
-function igniteFireTile(r,c,life=30){
+function igniteFireTile(r,c,life=PLANT_ARCHETYPES.lighter.behavior.fireLife){
   let tile=fireTileAt(r,c);
   if(tile){tile.age=0;tile.life=Math.max(tile.life,life);return tile;}
   tile={id:nextId++,row:r,col:c,age:0,life};fireTiles.push(tile);playSfx('ignite',.85,'ignite',130,c+.5);return tile;
@@ -503,17 +503,17 @@ function place(r,c){
   const cell=grid.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
   if(cell){cell.classList.remove('seedKick');void cell.offsetWidth;cell.classList.add('seedKick');setTimeout(()=>cell.classList.remove('seedKick'),260);}
   if(lighterUpgrade){
-    old.fireTransform=2.0;
-    old.fireTransformTotal=2.0;
+    old.fireTransform=PLANT_ARCHETYPES.lighter.behavior.transformDuration;
+    old.fireTransformTotal=PLANT_ARCHETYPES.lighter.behavior.transformDuration;
     old.fireMode=false;
     old.fireMorph=0;
     old.charge=0;old.shoot=0;
-    if(old.type==='wall'){old.maxHp=750;old.hp=Math.min(old.hp,750);}
+    if(old.type==='wall'){old.maxHp=PLANT_ARCHETYPES.wall.behavior.fireMaxHP;old.hp=Math.min(old.hp,old.maxHp);}
     say(old.type==='pea'?'打火机正在点燃豌豆射手……':'打火机正在熔铸坚果……');
     updateHUD();updateCooldownUI();selectTool(null);updatePlantTargets();return;
   }
   const isLighter=selected==='lighter';
-  plants.push({id:nextId++,type:selected,row:r,col:c,hp:maxHP[selected],maxHp:maxHP[selected],shoot:0,produce:0,anim:0,fireAnim:0,charge:0,lastFrame:0,plantingAge:isLighter?.56:0,throwAge:isLighter?0:null,ignited:false,skipDeath:!!isLighter,arm:selected==='potato'?0:null,armed:false,detonated:false,fireMode:false,fireMorph:0,squashDeath:0,squashDeathTotal:.78,squashByGiant:false,crossActive:selected==='crossfan'?3:0,crossTotal:3}); playSfx(isLighter?'throw':'plant',1,'plant',45,c+.5); if(selected==='crossfan'){crossFireFx.push({id:nextId++,row:r,col:c,age:0,life:3});playSfx('fan',1.15,'crossFan',180,c+.5);say('十字吹风机启动——四向烈焰持续 3 秒！');}
+  plants.push({id:nextId++,type:selected,row:r,col:c,hp:maxHP[selected],maxHp:maxHP[selected],shoot:0,produce:0,anim:0,fireAnim:0,charge:0,lastFrame:0,plantingAge:isLighter?PLANT_ARCHETYPES.lighter.behavior.ignitionDelay:0,throwAge:isLighter?0:null,ignited:false,skipDeath:!!isLighter,arm:selected==='potato'?0:null,armed:false,detonated:false,fireMode:false,fireMorph:0,squashDeath:0,squashDeathTotal:.78,squashByGiant:false,crossActive:selected==='crossfan'?PLANT_ARCHETYPES.crossfan.behavior.duration:0,crossTotal:PLANT_ARCHETYPES.crossfan.behavior.duration}); playSfx(isLighter?'throw':'plant',1,'plant',45,c+.5); if(selected==='crossfan'){crossFireFx.push({id:nextId++,row:r,col:c,age:0,life:PLANT_ARCHETYPES.crossfan.behavior.duration});playSfx('fan',1.15,'crossFan',180,c+.5);say(`十字吹风机启动——四向烈焰持续 ${PLANT_ARCHETYPES.crossfan.behavior.duration} 秒！`);}
   
   updateHUD();updateCooldownUI();selectTool(null);
 }
@@ -539,7 +539,7 @@ function magnetAbsorb(p){
 
   const candidates=zombies.filter(z=>
     z.type==='bucket'&&z.coneHp>0&&z.hp>0&&
-    Math.abs(z.x-(p.col+.5))<=2&&Math.abs(z.row-p.row)<=2
+    Math.abs(z.x-(p.col+.5))<=PLANT_ARCHETYPES.magnet.behavior.range&&Math.abs(z.row-p.row)<=PLANT_ARCHETYPES.magnet.behavior.range
   );
   if(!candidates.length)return false;
 
@@ -553,9 +553,9 @@ function magnetAbsorb(p){
   };
   looseBuckets.push(bucket);
   z.coneHp=0;z.coneMax=0;z.armGone=false;
-  p.magnetCooldown=10;p.magnetFlash=.8;playSfx('magnet',1,'magnet',180,p.col+.5);
+  p.magnetCooldown=PLANT_ARCHETYPES.magnet.behavior.cooldown;p.magnetFlash=.8;playSfx('magnet',1,'magnet',180,p.col+.5);
   magnetFx.push({id:nextId++,x:p.col+.5,y:p.row+.5,age:0,life:.8});
-  say('吸铁石吸下 1 个铁桶！铁桶会停在吸铁石头上，可拖到任意植物上。冷却 10 秒。');
+  say(`吸铁石吸下 1 个铁桶！铁桶会停在吸铁石头上，可拖到任意植物上。冷却 ${PLANT_ARCHETYPES.magnet.behavior.cooldown} 秒。`);
   return true;
 }
 function waveProgress(){
@@ -1037,7 +1037,7 @@ function firePea(p){
   // This keeps the first visible frame inside the mouth instead of appearing in the next tile.
   const muzzleX=p.col+.765, muzzleY=p.row+.466;
   const fireMode=!!p.fireMode;playSfx(fireMode?'fireShoot':'shoot',1,'shoot',35,muzzleX);
-  peas.push({id:nextId++,row:p.row,y:muzzleY,x:muzzleX,startX:muzzleX,age:0,speed:4.25,damage:fireMode?15:10,fire:fireMode,burnTotal:fireMode?20:0,burnDuration:fireMode?2:0});
+  peas.push({id:nextId++,row:p.row,y:muzzleY,x:muzzleX,startX:muzzleX,age:0,speed:PLANT_ARCHETYPES.pea.behavior.projectileSpeed,damage:fireMode?PLANT_ARCHETYPES.pea.behavior.fireProjectileDamage:PLANT_ARCHETYPES.pea.behavior.projectileDamage,fire:fireMode,burnTotal:fireMode?PLANT_ARCHETYPES.pea.behavior.fireBurnTotal:0,burnDuration:fireMode?PLANT_ARCHETYPES.pea.behavior.fireBurnDuration:0});
 }
 function addDeathFx(z){if(z.type==='brain'){
   playSfx('zombieDeath',.8,'brainDeath',80,z.x);
@@ -1197,8 +1197,8 @@ function update(dt){
         for(const z of zombies){
           if(z.hp<=0||z.digState==='underground')continue;
           const inHorizontal=z.row===p.row;
-          const inVertical=Math.abs(z.x-(p.col+.5))<.48;
-          if(inHorizontal||inVertical)damageZombie(z,100*dt,'crossFire',true);
+          const inVertical=Math.abs(z.x-(p.col+.5))<PLANT_ARCHETYPES.crossfan.behavior.verticalRadius;
+          if(inHorizontal||inVertical)damageZombie(z,PLANT_ARCHETYPES.crossfan.behavior.dps*dt,'crossFire',true);
         }
       }else if(!p.crossExpired){
         p.crossExpired=true;
@@ -1212,7 +1212,7 @@ function update(dt){
       p.magnetScan=(p.magnetScan||0)-dt;
       if(p.magnetScan<=0){
         if(!looseBuckets.some(b=>b.magnetId===p.id))magnetAbsorb(p);
-        p.magnetScan=.18;
+        p.magnetScan=PLANT_ARCHETYPES.magnet.behavior.scanInterval;
       }
     }
     if(p.plantingAge!=null&&p.plantingAge<.56)p.plantingAge=Math.min(.56,p.plantingAge+dt);
@@ -1221,7 +1221,7 @@ function update(dt){
     if(p.fireMorph>0)p.fireMorph=Math.max(0,p.fireMorph-dt);
     if(p.fireTransform>0){
       p.fireTransform=Math.max(0,p.fireTransform-dt);
-      const elapsed=(p.fireTransformTotal||2.0)-p.fireTransform;
+      const elapsed=(p.fireTransformTotal||PLANT_ARCHETYPES.lighter.behavior.transformDuration)-p.fireTransform;
       p.fireMorph=Math.min(1,Math.max(0,(elapsed-.55)/1.20));
       p.charge=0;p.shoot=0;
       if(p.fireTransform<=0){p.fireMode=true;p.fireMorph=1;p.fireAnim=0;playSfx('ignite',1,'transformIgnite',160,p.col+.5);p.shoot=Math.max(p.shoot||0,1.35);say(p.type==='wall'?'浴火熔铸——熔岩坚果完成转化！':'浴火重生——火焰射手完成转化！');}
@@ -1230,37 +1230,37 @@ function update(dt){
     p.lastFrame=Math.floor((gameTime*6+p.id)%4);
     if((p.plantingAge??.56)<.56)continue;
     if(p.type==='sunflower'){
-      p.charge=Math.min(1,p.produce/11);
+      p.charge=Math.min(1,p.produce/PLANT_ARCHETYPES.sunflower.behavior.productionPeriod);
       p.produce+=dt;
-      if(p.produce>=11){p.produce=0;createPlantSun(p)}
+      if(p.produce>=PLANT_ARCHETYPES.sunflower.behavior.productionPeriod){p.produce=0;createPlantSun(p)}
     }
     if(p.type==='pea'){
       if(p.fireTransform>0)continue;
       const has=zombies.some(z=>z.row===p.row&&z.x>p.col+.35&&z.hp>0);
-      const shootCd=p.fireMode?2.84375:2.1875;
+      const shootCd=p.fireMode?PLANT_ARCHETYPES.pea.behavior.fireShootInterval:PLANT_ARCHETYPES.pea.behavior.shootInterval;
       p.shoot+=dt;
       p.charge=has?Math.min(1,p.shoot/shootCd):0;
       if(has&&p.shoot>=shootCd){p.shoot=0;firePea(p)}
       if(!has){p.charge=0; if(p.shoot>0.7)p.shoot=0.7;}
     }
     if(p.type==='fan'){
-      const start=p.col+.55,end=start+4.0;let fanHas=false;
+      const start=p.col+.55,end=start+PLANT_ARCHETYPES.fan.behavior.range;let fanHas=false;
       for(const z of zombies){if(z.hp>0&&z.row===p.row&&z.x>=start&&z.x<=end){z.fanSlow=true;fanHas=true;}}
       if(fanHas){p.sfxFan=(p.sfxFan||0)-dt;if(p.sfxFan<=0){playSfx('fan',.75,'fan',180,p.col+.8);p.sfxFan=.92;}}
     }
     if(p.type==='lighter'){
       p.throwAge=(p.throwAge||0)+dt;
-      if(!p.ignited&&p.throwAge>=.56){igniteFireTile(p.row,p.col);p.ignited=true;}
-      if(p.throwAge>=.86)p.hp=0;
+      if(!p.ignited&&p.throwAge>=PLANT_ARCHETYPES.lighter.behavior.ignitionDelay){igniteFireTile(p.row,p.col);p.ignited=true;}
+      if(p.throwAge>=PLANT_ARCHETYPES.lighter.behavior.lifetime)p.hp=0;
       continue;
     }
     if(p.type==='potato'){
-      if(!p.armed){p.arm+=dt;if(p.arm>=6){p.armed=true;p.anim=.55;playSfx('armed',.8,'armed',100,p.col+.5)}}
+      if(!p.armed){p.arm+=dt;if(p.arm>=PLANT_ARCHETYPES.potato.behavior.armTime){p.armed=true;p.anim=.55;playSfx('armed',.8,'armed',100,p.col+.5)}}
       if(p.armed&&!p.detonated){
-        const target=zombies.find(z=>z.row===p.row&&z.hp>0&&Math.abs(z.x-(p.col+.5))<.68);
+        const target=zombies.find(z=>z.row===p.row&&z.hp>0&&Math.abs(z.x-(p.col+.5))<PLANT_ARCHETYPES.potato.behavior.triggerRadius);
         if(target){
           p.detonated=true;playSfx('explosion',1.25,'explosion',180,p.col+.5);blastFx.push({id:nextId++,x:p.col+.5,y:p.row+.5,age:0,life:1.9});
-          for(const z of zombies.filter(z=>z.row===p.row&&Math.abs(z.x-(p.col+.5))<.72&&z.hp>0)) damageZombie(z,500,'potato');
+          for(const z of zombies.filter(z=>z.row===p.row&&Math.abs(z.x-(p.col+.5))<PLANT_ARCHETYPES.potato.behavior.blastRadius&&z.hp>0)) damageZombie(z,PLANT_ARCHETYPES.potato.behavior.damage,'potato');
           p.hp=0;
         }
       }
@@ -1431,7 +1431,7 @@ function update(dt){
   peas=peas.filter(p=>!p.hit&&p.x<COLS+.55&&p.x>-.55);
 
   for(const z of zombies){
-    const slowMul=z.fanSlow?.5:1;
+    const slowMul=z.fanSlow?PLANT_ARCHETYPES.fan.behavior.slowMultiplier:1;
     if(z.type==='workboss')continue;
     if(z.bossSlide&&updateCargoSlide(z,dt))continue;
     if(z.raidDrop){z.raidDrop.age+=dt;if(z.raidDrop.age<z.raidDrop.dur){z.walkTick=(z.walkTick+dt*2.2)%1;continue;}z.raidDrop=null;z.airY=0;}
@@ -1485,7 +1485,7 @@ function update(dt){
         const mine=plants.find(p=>p.type==='potato'&&p.armed&&!p.detonated&&p.row===z.row&&Math.abs((p.col+.5)-z.x)<.60);
         if(mine){
           mine.detonated=true;mine.hp=0;playSfx('explosion',1.25,'minerMine',180,mine.col+.5);
-          blastFx.push({id:nextId++,x:mine.col+.5,y:mine.row+.5,age:0,life:1.9});damageZombie(z,500,'potato');
+          blastFx.push({id:nextId++,x:mine.col+.5,y:mine.row+.5,age:0,life:1.9});damageZombie(z,PLANT_ARCHETYPES.potato.behavior.damage,'potato');
           continue;
         }
         z.x-=(.21*2)*slowMul*dt;
@@ -1522,7 +1522,7 @@ function update(dt){
       }
     }
     if(target){
-      if(target.type==='wall'&&target.fireMode&&z.hp>0)damageZombie(z,10*dt,'lavaWall',true);
+      if(target.type==='wall'&&target.fireMode&&z.hp>0)damageZombie(z,PLANT_ARCHETYPES.wall.behavior.lavaContactDps*dt,'lavaWall',true);
       if(z.hitStun>0){
         // A hit fully interrupts locomotion and bite damage for the stagger window.
         z.eating=false;

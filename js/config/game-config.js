@@ -25,6 +25,7 @@ for(const [id,entry] of Object.entries(plantDefs)){
 const TEST_MODE=false;
 const FINAL_TEST_UNLOCK_ALL=false;
 const SAVE_KEY='pixelLawnBattle.save.v1';
+const PLANT_ARCHETYPES=plantDefs;
 const ZOMBIE_ARCHETYPES=zombieDefs;
-window.ZHEBAO_CONFIG={LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,ZOMBIE_ARCHETYPES};
+window.ZHEBAO_CONFIG={LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES};
 })();
