@@ -323,7 +323,7 @@ updateSfxControls();
 
 const waveHud=document.getElementById('waveHud'),waveFill=document.getElementById('waveFill'),waveMidFlag=document.getElementById('waveMidFlag'),waveFinalFlag=document.getElementById('waveFinalFlag'),waveStageText=document.getElementById('waveStageText'),waveStateText=document.getElementById('waveStateText');
 let ROWS=2;const COLS=10;
-const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS}=window.ZHEBAO_CONFIG;
+const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
 
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 
@@ -906,17 +906,17 @@ function pickZombieType(){
   return type;
 }
 function makeZombie(type,row,x=COLS+.18){
-  const hp=type==='workboss'?1400:(type==='giant'?400:(type==='miner'?150:(type==='brain'?80:(type==='crawler'?200:(type==='imp'?40:(type==='longhair'?150:100))))));
-  const speed=type==='workboss'?0:(type==='giant'?.105:((type==='miner'||type==='brain')?.14:.21));
+  const archetype=ZOMBIE_ARCHETYPES[type]||ZOMBIE_ARCHETYPES.normal;
+  const hp=archetype.hp,speed=archetype.speed,armor=archetype.armor||0;
   return {
-    id:nextId++,type,row,x,hp,maxHp:hp,coneHp:type==='bucket'?200:(type==='cone'?50:0),coneMax:type==='bucket'?200:(type==='cone'?50:0),speed,
+    id:nextId++,type,row,x,hp,maxHp:hp,coneHp:armor,coneMax:armor,speed,
     attack:0,eating:false,eatMode:null,eatTargetId:null,walkTick:Math.random()*4,hurt:0,hitStun:0,
-    armGone:type==='crawler'||type==='longhair',lungeTime:0,lungePhase:0,bloodTick:0,gaitPhase:Math.random(),gaitCadence:type==='crawler'?.48:(type==='imp'?.95:(type==='longhair'?.60:.72)),
-    hairCooldown:type==='longhair'?0:0,hairAttack:0,brainEat:0,brainDropId:null,smashTime:0,smashCooldown:0,giantArmor:null,giantTransform:0,giantTransformTotal:3,giantFromType:null,
+    armGone:!!archetype.armGone,lungeTime:0,lungePhase:0,bloodTick:0,gaitPhase:Math.random(),gaitCadence:archetype.gaitCadence,
+    hairCooldown:0,hairAttack:0,brainEat:0,brainDropId:null,smashTime:0,smashCooldown:0,giantArmor:null,giantTransform:0,giantTransformTotal:3,giantFromType:null,
     crawlPhase:Math.random(),lungeStartX:null,lungeEndX:null,lungeDuration:.58,
-    entrailAnchorX:type==='crawler'?x:null,entrailPhase:Math.random()*Math.PI*2,entrailSpawnX:type==='crawler'?x:null,entrailTravel:0,entrailDetached:false,
+    entrailAnchorX:archetype.entrailAnchored?x:null,entrailPhase:Math.random()*Math.PI*2,entrailSpawnX:archetype.entrailAnchored?x:null,entrailTravel:0,entrailDetached:false,
     mountedToId:null,carriesImpId:null,airY:0,jumpTime:0,jumpDur:0,jumpMode:null,jumpFromX:null,jumpToX:null,jumpTargetId:null,
-    digState:type==='miner'?'walk':null,digAge:0,digStartX:null,digEndX:null,digRise:0
+    digState:archetype.digState||null,digAge:0,digStartX:null,digEndX:null,digRise:0
   };
 }
 function spawnZombie(){
@@ -1094,7 +1094,8 @@ function damageZombie(z,dmg,source=null,isFireDamage=false){
   if(z.type!=='giant'&&!z.armGone && z.hp<=z.maxHp*0.5){z.armGone=true;armFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:-1});}
   if(z.hp<=0&&source)z.deathSource=source;
   // Crawlers stay planted low to the ground: pea hits damage them but never stagger or knock them back.
-  const stunHit=(source==='pea'||source==='firePea')&&z.type!=='giant'&&z.type!=='workboss'&&z.type!=='crawler';
+  const controlImmune=ZOMBIE_ARCHETYPES[z.type]?.immuneKnockback||ZOMBIE_ARCHETYPES[z.type]?.immuneStagger;
+  const stunHit=(source==='pea'||source==='firePea')&&z.type!=='giant'&&z.type!=='workboss'&&!controlImmune;
   if(stunHit){
     // Pea impact keeps the full 0.4 s stagger and also knocks the zombie
     // one eighth of a lawn cell away from the plants (to the right).
@@ -1339,7 +1340,7 @@ function update(dt){
       const eatNeed=eater.type==='giant'?10:2;
       if(eater.brainEat>=eatNeed){
         if(eater.type==='giant'){
-          eater.hp=Math.min(eater.maxHp||400,eater.hp+100);
+          eater.hp=Math.min(eater.maxHp||ZOMBIE_ARCHETYPES.giant.hp,eater.hp+100);
           eater.brainEat=0;eater.brainDropId=null;b.done=true;
           playSfx('fleshHit',1,'giantBrainHeal',120,eater.x);say('中型巨人吞下脑浆，恢复了 100 点生命！');
         }else{
@@ -1380,10 +1381,10 @@ function update(dt){
       z.giantTransform=Math.max(0,z.giantTransform-dt);
       z.eating=false;z.eatTargetId=null;z.eatMode=null;z.attack=0;z.hitStun=0;z.hurt=0;z.lungeTime=0;
       if(z.giantTransform<=0){
-        z.type='giant';z.maxHp=400;z.hp=400;z.speed=.105;
+        z.type='giant';z.maxHp=ZOMBIE_ARCHETYPES.giant.hp;z.hp=z.maxHp;z.speed=ZOMBIE_ARCHETYPES.giant.speed;
         z.coneMax=z.giantArmor==='bucket'?200:(z.giantArmor==='cone'?50:0);
         z.coneHp=z.giantArmor?Math.max(1,z.giantArmorCarryHp||0):0;
-        z.gaitCadence=.38;z.smashCooldown=0;z.giantFromType=null;z.giantArmorCarryHp=0;
+        z.gaitCadence=ZOMBIE_ARCHETYPES.giant.transformedGaitCadence;z.smashCooldown=0;z.giantFromType=null;z.giantArmorCarryHp=0;
         playSfx('explosion',1.15,'mutateImpact',180,z.x);
         playSfx('zombieSpawn',1.2,'mutateFinish',180,z.x);say('变异完成——中型巨人站起来了！');
       }
@@ -1417,7 +1418,7 @@ function update(dt){
     if(reflector){
       // Start the body/hair action first. The projectile reverses only when the hair tip reaches it.
       pea.reflectPending=reflector.id;pea.speed=0;pea.y=reflector.row+.43;
-      reflector.hairCooldown=5;reflector.hairAttack=1.34;
+      reflector.hairCooldown=ZOMBIE_ARCHETYPES.longhair.reflectCooldown;reflector.hairAttack=1.34;
       continue;
     }
     const target=zombies.filter(z=>z.hp>0&&!z.bossSlide&&z.digState!=='underground'&&!z.mountedToId&&(z.type==='workboss'?['intermission','finalStand'].includes(level10Boss?.phase):z.row===pea.row)&&Math.abs(z.x-pea.x)<.24).sort((a,b)=>a.x-b.x)[0];
@@ -1529,7 +1530,7 @@ function update(dt){
         z.eating=true;z.smashCooldown=(z.smashCooldown||0)+dt*slowMul;
         z.smashTime=Math.max(0,(z.smashTime||0)-dt);
         // Giant attacks once every 4 seconds: twice the previous 2-second interval.
-        if(z.smashCooldown>=4){
+        if(z.smashCooldown>=ZOMBIE_ARCHETYPES.giant.attackInterval){
           z.smashCooldown=0;z.smashTime=.92;z.smashPending=true;playSfx('explosion',.72,'giantSmash',120,z.x);
           // Damage lands later, at the visible hand impact frame.
         }
