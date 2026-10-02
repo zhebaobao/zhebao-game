@@ -19,5 +19,9 @@ window.ZHEBAO_LEVELS[2]={
     "spawnMin": 8,
     "spawnMax": 11
   },
-  "reward": "potato"
+  "reward": "potato",
+  "ui": {
+    "note": "第 2 关：三条草坪路线",
+    "subtitle": "1-2 · 狂暴来袭 · 三线防守"
+  }
 };

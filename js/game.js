@@ -323,7 +323,7 @@ updateSfxControls();
 
 const waveHud=document.getElementById('waveHud'),waveFill=document.getElementById('waveFill'),waveMidFlag=document.getElementById('waveMidFlag'),waveFinalFlag=document.getElementById('waveFinalFlag'),waveStageText=document.getElementById('waveStageText'),waveStateText=document.getElementById('waveStateText');
 let ROWS=2;const COLS=10;
-const {LEVELS,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
+const {LEVELS,LEVEL_UI,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
 
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 
@@ -340,22 +340,12 @@ async function requestGameFullscreen(){
 }
 
 function makeSaveData(){return {version:2,completedLevels:[...new Set(completedLevels)].sort((a,b)=>a-b),wallUnlocked,potatoUnlocked,fanUnlocked,lighterUnlocked,magnetUnlocked,crossfanUnlocked,savedAt:new Date().toISOString()}}
-function persistProgress(){if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(makeSaveData()))}catch(e){}}
-function normalizeSave(raw){
-  const c=[...new Set(Array.isArray(raw?.completedLevels)?raw.completedLevels.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=10):[])].sort((a,b)=>a-b);
-  return {version:2,completedLevels:c,
-    wallUnlocked:!!raw?.wallUnlocked||c.includes(1),
-    potatoUnlocked:!!raw?.potatoUnlocked||c.includes(2),
-    fanUnlocked:!!raw?.fanUnlocked||c.includes(3),
-    lighterUnlocked:!!raw?.lighterUnlocked||c.includes(4),
-    magnetUnlocked:!!raw?.magnetUnlocked||c.includes(5),
-    crossfanUnlocked:!!raw?.crossfanUnlocked||c.includes(6)};
-}
+function persistProgress(){if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return;window.ZHEBAO_SAVE.write(SAVE_KEY,makeSaveData())}
 function applySaveData(raw){
-  const d=normalizeSave(raw);completedLevels=d.completedLevels;wallUnlocked=d.wallUnlocked;potatoUnlocked=d.potatoUnlocked;fanUnlocked=d.fanUnlocked;lighterUnlocked=d.lighterUnlocked;magnetUnlocked=d.magnetUnlocked;crossfanUnlocked=d.crossfanUnlocked;
+  const d=window.ZHEBAO_SAVE.normalize(raw);completedLevels=d.completedLevels;wallUnlocked=d.wallUnlocked;potatoUnlocked=d.potatoUnlocked;fanUnlocked=d.fanUnlocked;lighterUnlocked=d.lighterUnlocked;magnetUnlocked=d.magnetUnlocked;crossfanUnlocked=d.crossfanUnlocked;
   refreshProgressUI();
 }
-function loadLocalProgress(){if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return;try{const raw=localStorage.getItem(SAVE_KEY);if(raw)applySaveData(JSON.parse(raw))}catch(e){}}
+function loadLocalProgress(){if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return;const d=window.ZHEBAO_SAVE.read(SAVE_KEY);if(d)applySaveData(d)}
 function refreshProgressUI(){
   const numerals=['','一','二','三','四','五','六','七','八','九','十'];
   document.querySelectorAll('.levelCard').forEach(b=>{
@@ -4413,10 +4403,9 @@ function applyLevelUI(){
     b.hidden=!allowed;
     b.setAttribute('aria-hidden',allowed?'false':'true');
   });
-  const noteMap={1:'第 1 关：两条草坪路线',2:'第 2 关：三条草坪路线',3:'第 3 关：半身爬行者',4:'第 4 关：混合尸潮',5:'第 5 关：五路草坪 · 低矮小鬼丧尸',6:'第 6 关：五路草坪 · 长发丧尸 · 反弹豌豆',7:'第 7 关：铁架施工 · 飞机投桶突袭',8:'第 8 关：脑浆感染 · 三波旗帜 · 解锁十字吹风机',10:'第 10 关：战车 Boss · 装卸突袭'};
-  const subMap={1:'1-1 · 特勤试炼 · 双线防守',2:'1-2 · 狂暴来袭 · 三线防守',3:'1-3 · 地面威胁 · 爬行者来袭',4:'1-4 · 尸潮进阶 · 混合推进',5:'1-5 · 五路防区 · 小鬼丧尸登场',6:'1-6 · 阴发来袭 · 长发丧尸登场',7:'1-7 · 空投突袭 · 铁桶防线',8:'1-8 · 脑浆感染 · 三旗帜增益波',9:'1-9 · 矿工破阵 · 地下威胁',10:'1-10 · 战车 Boss · 最后一波'};
-  document.getElementById('levelNote').textContent=noteMap[currentLevel]||`第 ${currentLevel} 关`;
-  document.querySelector('.sub').textContent=subMap[currentLevel]||`1-${currentLevel} · 测试关卡`;
+  const levelUi=LEVEL_UI[currentLevel]||{};
+  document.getElementById('levelNote').textContent=levelUi.note||`第 ${currentLevel} 关`;
+  document.querySelector('.sub').textContent=levelUi.subtitle||`1-${currentLevel} · 测试关卡`;
 }
 function startLevel(n){
   cancelAnimationFrame(battleBgmFadeRAF);battleBgmFadeRAF=0;
@@ -4631,24 +4620,7 @@ document.getElementById('enterBattle').addEventListener('click',()=>{startLevel(
 
 const almanacScreen=document.getElementById('almanacScreen'),almanacGrid=document.getElementById('almanacGrid');
 let almanacRAF=0,almanacFocus=null,almanacReturn='levels';
-const dexEntries=[
-  {id:'pea',name:'豌豆射手',kind:'植物',desc:'发射豌豆子弹，持续攻击前方僵尸。'},
-  {id:'sunflower',name:'向日葵',kind:'植物',desc:'可爱的小猫向日葵，会定期生产阳光。'},
-  {id:'lighter',name:'打火机',kind:'植物',desc:'75 阳光。既可以投到空草地形成持续 30 秒的火坑，也可以投到豌豆射手身上转化为火焰射手，或投到坚果身上熔铸成熔岩坚果。'},
-  {id:'wall',name:'坚果',kind:'植物',desc:'厚重的防御植物，保护后方植物并阻挡丧尸。'},
-  {id:'potato',name:'土豆地雷',kind:'植物',desc:'潜伏的暗器。25 阳光，约 6 秒出土，爆炸伤害 500。'},
-  {id:'fan',name:'寒风扇',kind:'植物',desc:'持续向前吹出 4 格冷风。175 阳光，20 秒冷却；范围内丧尸减速 50%，不造成伤害。'},
-  {id:'magnet',name:'吸铁石',kind:'植物',desc:'100 阳光。吸走周围 4×4 范围铁桶僵尸的铁桶；拆下的铁桶可拖到任意植物头上，提供 200 点护甲。'},
-  {id:'crossfan',name:'十字吹风机',kind:'植物',desc:'只能放置在打火机留下的火坑上。启动后向上下左右四个方向吹出风火，持续 3 秒，对十字火路中的僵尸造成每秒 100 点伤害，随后自行消失。'},
-  {id:'normal',name:'普通丧尸',kind:'丧尸',desc:'步行逼近植物，贴身后连续啃咬。'},
-  {id:'cone',name:'路障丧尸',kind:'丧尸',desc:'头顶路障提供额外防护，路障被打掉后继续前进。'},
-  {id:'crawler',name:'半身爬行者',kind:'丧尸',desc:'失去下半身，用双手扒地拖行；移动缓慢，但每次扒地才向前窜一截。'},
-  {id:'imp',name:'低矮小鬼丧尸',kind:'丧尸',desc:'像小蜘蛛一样贴地疾行，看到前方大僵尸就会跳上头顶，接近植物后再翻到后方。'},
-  {id:'longhair',name:'长发丧尸',kind:'丧尸',desc:'150 生命。长发遮脸的女鬼型丧尸；约每 10 秒可甩发反弹一颗迎面飞来的豌豆，反弹弹丸会伤害植物。'},
-  {id:'brain',name:'脑浆僵尸',kind:'丧尸',desc:'80 生命，速度约为普通僵尸的 2/3。头骨破裂、脑浆裸露；死亡后脑浆会掉在草坪上。'},
-  {id:'giant',name:'脑浆变异小巨人',kind:'丧尸',desc:'普通、路障或铁桶僵尸吞食脑浆 2 秒后变异。400 生命，速度为普通僵尸一半；约每 2 秒双手重砸并直接摧毁植物，且继承原有头部防具。'},
-  {id:'miner',name:'矿工僵尸',kind:'丧尸',desc:'第九关登场。150 生命；地面移动速度与脑浆僵尸相同。入场后走完右侧两格，会把矿镐向空中挑起并钻地；地下速度为普通僵尸的 2 倍，正常在左起第 3 格钻出。出土会把附近植物顶起约 0.6 秒使其暂时停工；成熟土豆雷可在地下炸死它，火坑会阻止它从该格出土，寒风会减慢挖掘和潜行。'},
-];
+const dexEntries=window.ZHEBAO_ALMANAC_ENTRIES;
 function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else drawZombie(ctx,id==='cone',(t*.7)%1,null,false,false,0,0)}
 function isDexUnlocked(id){
   if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return true;

@@ -25,5 +25,9 @@ window.ZHEBAO_LEVELS[5]={
     "spawnMin": 6.6,
     "spawnMax": 9.1
   },
-  "reward": "magnet"
+  "reward": "magnet",
+  "ui": {
+    "note": "第 5 关：五路草坪 · 低矮小鬼丧尸",
+    "subtitle": "1-5 · 五路防区 · 小鬼丧尸登场"
+  }
 };

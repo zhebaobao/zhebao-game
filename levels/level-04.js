@@ -21,5 +21,9 @@ window.ZHEBAO_LEVELS[4]={
     "spawnMin": 6.9,
     "spawnMax": 9.5
   },
-  "reward": "lighter"
+  "reward": "lighter",
+  "ui": {
+    "note": "第 4 关：混合尸潮",
+    "subtitle": "1-4 · 尸潮进阶 · 混合推进"
+  }
 };

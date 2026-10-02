@@ -26,5 +26,9 @@ window.ZHEBAO_LEVELS[6]={
     "spawnMin": 6.3,
     "spawnMax": 8.7
   },
-  "reward": "crossfan"
+  "reward": "crossfan",
+  "ui": {
+    "note": "第 6 关：五路草坪 · 长发丧尸 · 反弹豌豆",
+    "subtitle": "1-6 · 阴发来袭 · 长发丧尸登场"
+  }
 };

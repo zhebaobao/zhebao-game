@@ -27,5 +27,9 @@ window.ZHEBAO_LEVELS[10]={
     "firstDelay": 8,
     "spawnMin": 7.5,
     "spawnMax": 10.5
+  },
+  "ui": {
+    "note": "第 10 关：战车 Boss · 装卸突袭",
+    "subtitle": "1-10 · 战车 Boss · 最后一波"
   }
 };

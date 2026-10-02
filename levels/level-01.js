@@ -17,5 +17,9 @@ window.ZHEBAO_LEVELS[1]={
     "spawnMin": 10.5,
     "spawnMax": 13.5
   },
-  "reward": "wall"
+  "reward": "wall",
+  "ui": {
+    "note": "第 1 关：两条草坪路线",
+    "subtitle": "1-1 · 特勤试炼 · 双线防守"
+  }
 };

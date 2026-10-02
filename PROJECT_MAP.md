@@ -9,7 +9,9 @@
 | `index.html` | 页面 DOM 与模块加载顺序 |
 | `css/game.css` | UI、响应式布局和 CSS 动画 |
 | `js/config/game-config.js` | 汇总植物、关卡和僵尸注册表；保存测试开关与存档键 |
-| `js/game.js` | 尚未拆出的战斗流程、动画绘制和 UI |
+| `js/save/progress.js` | 存档规范化与 localStorage 读写 |
+| `js/ui/almanac-data.js` | 图鉴静态名称与说明文字 |
+| `js/game.js` | 尚未拆出的战斗流程、动画绘制和动态 UI |
 | `assets/portraits/` | 植物立绘资源 |
 
 ## 植物栏目
@@ -41,7 +43,7 @@
 
 ## 关卡栏目
 
-`levels/level-01.js` 至 `levels/level-10.js`：每关路线、敌人数、经济、出怪间隔、敌人类型和奖励。修改单关只读取对应文件。
+`levels/level-01.js` 至 `levels/level-10.js`：每关路线、敌人数、经济、出怪间隔、敌人类型、奖励，以及关卡标题/副标题。修改单关只读取对应文件。
 
 ## js/game.js 余下定位
 
@@ -63,6 +65,7 @@
 - [x] 每种僵尸独立基础配置
 - [ ] 植物专属行为函数与绘制迁移
 - [ ] 僵尸 AI、攻击与绘制迁移
-- [ ] 核心战斗、UI 与存档拆分
+- [x] 存档序列化与图鉴静态数据拆分
+- [ ] 核心战斗与动态 UI 拆分
 
 新增、删除、移动文件或改变职责后更新本文件。每次只拆一个低耦合区域，并保持 GitHub Pages 可直接运行。

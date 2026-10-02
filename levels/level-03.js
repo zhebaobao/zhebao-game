@@ -21,5 +21,9 @@ window.ZHEBAO_LEVELS[3]={
     "spawnMin": 7.5,
     "spawnMax": 10.5
   },
-  "reward": "fan"
+  "reward": "fan",
+  "ui": {
+    "note": "第 3 关：半身爬行者",
+    "subtitle": "1-3 · 地面威胁 · 爬行者来袭"
+  }
 };

@@ -30,5 +30,8 @@ window.ZHEBAO_LEVELS[9]={
     "firstDelay": 7,
     "spawnMin": 5.4,
     "spawnMax": 7.4
+  },
+  "ui": {
+    "subtitle": "1-9 · 矿工破阵 · 地下威胁"
   }
 };
