@@ -1,4 +1,4 @@
-// Battlefield art fills a wide 16:9 game viewport; the playable rectangle is
+// Battlefield art fills a wide 19:10 game viewport; the playable rectangle is
 // positioned independently so scene decoration never becomes a small inset board.
 window.ZHEBAO_SCENES={
   2:{
