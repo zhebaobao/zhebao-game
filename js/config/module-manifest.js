@@ -1,6 +1,6 @@
 // Single source of truth for browser module loading and registry validation.
 window.ZHEBAO_MODULE_MANIFEST={
-  version:'2026.10.03.8',
+  version:'2026.10.03.9',
   plants:[
     {id:'pea',src:'./plants/peashooter.js'},
     {id:'sunflower',src:'./plants/sunflower.js'},
