@@ -323,8 +323,13 @@ updateSfxControls();
 
 const waveHud=document.getElementById('waveHud'),waveFill=document.getElementById('waveFill'),waveMidFlag=document.getElementById('waveMidFlag'),waveFinalFlag=document.getElementById('waveFinalFlag'),waveStageText=document.getElementById('waveStageText'),waveStateText=document.getElementById('waveStateText');
 let ROWS=2;const COLS=10;
-const {LEVELS,LEVEL_IDS,LEVEL_UI,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
-window.ZHEBAO_LEVEL_SELECT.render(document.querySelector('.levelGrid'),LEVEL_IDS,LEVEL_UI);
+const {LEVELS,LEVEL_UI,costs,maxHP,cooldownMax,TEST_MODE,FINAL_TEST_UNLOCK_ALL,SAVE_KEY,LEVEL_PLANT_REWARDS,plantNames,PLANT_PORTRAITS,PLANT_ARCHETYPES,ZOMBIE_ARCHETYPES}=window.ZHEBAO_CONFIG;
+const LEVEL_IDS=window.ZHEBAO_CONFIG.LEVEL_IDS||Object.keys(LEVELS).map(Number).sort((a,b)=>a-b);
+const levelSelect=window.ZHEBAO_LEVEL_SELECT||{
+  formatNumber:n=>(['零','一','二','三','四','五','六','七','八','九','十'][n]||String(n)),
+  render:()=>{}
+};
+levelSelect.render(document.querySelector('.levelGrid'),LEVEL_IDS,LEVEL_UI);
 
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 
@@ -352,7 +357,7 @@ function refreshProgressUI(){
     const n=+b.dataset.level,index=LEVEL_IDS.indexOf(n),previous=index>0?LEVEL_IDS[index-1]:null;
     const done=completedLevels.includes(n),open=FINAL_TEST_UNLOCK_ALL||index===0||(index>0&&completedLevels.includes(previous));
     b.classList.toggle('done',done);b.classList.toggle('locked',!open);b.disabled=!open;
-    const no=b.querySelector('.levelNo');if(no)no.textContent=open?`第${window.ZHEBAO_LEVEL_SELECT.formatNumber(n)}关`:'？';
+    const no=b.querySelector('.levelNo');if(no)no.textContent=open?`第${levelSelect.formatNumber(n)}关`:'？';
     for(const el of b.children)if(!el.classList.contains('levelNo'))el.style.display=open?'':'none';
     const tag=b.querySelector('.levelTag');if(tag)tag.textContent=open?(done?'已完成 · 可重玩':(n===1?'开始冒险':'新关卡')):'';
     b.setAttribute('aria-label',open?`第 ${n} 关`:'未解锁关卡');

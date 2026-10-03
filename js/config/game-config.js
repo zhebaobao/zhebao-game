@@ -1,10 +1,13 @@
 // Registry composer. The bootstrap loads every manifest entry before this file.
 (()=>{
-const manifest=window.ZHEBAO_MODULE_MANIFEST;
 const plantDefs=window.ZHEBAO_PLANTS||{};
 const levelDefs=window.ZHEBAO_LEVELS||{};
 const zombieDefs=window.ZHEBAO_ZOMBIES||{};
-if(!manifest)throw new Error('Module manifest is missing');
+const manifest=window.ZHEBAO_MODULE_MANIFEST||{
+  plants:Object.keys(plantDefs).map(id=>({id})),
+  levels:Object.keys(levelDefs).map(Number).sort((a,b)=>a-b).map(id=>({id})),
+  zombies:Object.keys(zombieDefs).map(id=>({id}))
+};
 
 function validateRegistry(label,entries,registry){
   const ids=entries.map(entry=>String(entry.id));

@@ -7,7 +7,7 @@
 | 路径 | 职责 |
 | --- | --- |
 | `index.html` | 页面 DOM 容器；只加载模块清单和启动器 |
-| `js/config/module-manifest.js` | 植物、关卡、僵尸与运行时脚本的唯一加载清单 |
+| `js/config/module-manifest.js` | 植物、关卡、僵尸与运行时脚本的唯一加载清单；改动模块后同步更新 `version` |
 | `js/bootstrap.js` | 按清单顺序加载模块并启动游戏 |
 | `css/game.css` | UI、响应式布局和 CSS 动画 |
 | `js/config/game-config.js` | 汇总植物、关卡和僵尸注册表；保存测试开关与存档键 |

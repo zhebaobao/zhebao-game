@@ -39,7 +39,7 @@ if(JSON.stringify(config.LEVEL_IDS)!==JSON.stringify(manifest.levels.map(entry=>
 
 const html=read('index.html');
 for(const required of ['./js/config/module-manifest.js','./js/bootstrap.js']){
-  if(!html.includes('src="'+required+'"'))throw new Error('index.html does not load '+required);
+  if(!html.includes('src="'+required+'?v='))throw new Error('index.html does not load a versioned '+required);
 }
 if(/src="\.\/(plants|levels|zombies)\//.test(html)){
   throw new Error('index.html contains registry scripts outside the manifest');
