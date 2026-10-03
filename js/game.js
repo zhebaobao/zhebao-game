@@ -1100,7 +1100,10 @@ function damageZombie(z,dmg,source=null,isFireDamage=false){
   const lost=armorLost+bodyLost;
   if((source==='pea'||source==='firePea')&&armorLost>0)playSfx('metalHit',1,'metalHit',42,z.x);
   else if((source==='pea'||source==='firePea')&&bodyLost>0)playSfx('fleshHit',1,'fleshHit',38,z.x);
-  if(z.type!=='giant'&&!z.armGone && z.hp<=z.maxHp*0.5){z.armGone=true;armFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:-1});}
+  // The ordinary walker loses an arm at the artist-defined two-thirds-health transition.
+  // Other existing zombie families retain their established half-health threshold.
+  const armBreakAt=z.type==='normal'?(z.maxHp*2/3):(z.maxHp*.5);
+  if(z.type!=='giant'&&!z.armGone&&z.hp<=armBreakAt){z.armGone=true;armFx.push({id:nextId++,x:z.x,y:z.row+.5,age:0,life:.9,dir:-1});}
   if(z.hp<=0&&source)z.deathSource=source;
   // Crawlers stay planted low to the ground: pea hits damage them but never stagger or knock them back.
   const controlImmune=ZOMBIE_ARCHETYPES[z.type]?.immuneKnockback||ZOMBIE_ARCHETYPES[z.type]?.immuneStagger;
@@ -2879,10 +2882,12 @@ function drawCargoArticulated(x,z,drawBase){
  x.strokeStyle='#667b55';x.lineWidth=4.2;x.lineCap='round';x.lineJoin='round';const hy=p==='dive'?25:55,sp=10+reach*10;x.beginPath();x.moveTo(24,28);x.quadraticCurveTo(18,38,32-sp,hy);x.moveTo(40,29);x.quadraticCurveTo(45,39,32+sp,hy);x.stroke();x.fillStyle='#526747';x.beginPath();x.arc(32-sp,hy,2.7,0,Math.PI*2);x.arc(32+sp,hy,2.7,0,Math.PI*2);x.fill();x.restore();
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
-function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0,plainModel=true){
+function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0,plainModel=true,damageStage=0){
   const front=eatMode==='front', vertical=eatMode==='vertical';
   // The unarmoured walker has its own art direction; cone/bucket/brain variants keep their established silhouettes.
   const plain=plainModel&&!cone&&bucketHp<=0;
+  const woundStage=plain?Math.max(0,Math.min(2,damageStage||0)):0;
+  const torn=woundStage>=1,critical=woundStage>=2;
   // One readable bite cycle: approach -> open -> clamp -> pull back. Damage timing stays independent.
   const bp=(front||vertical)?Math.max(0,Math.min(1,bitePhase)):0;
   // Eight-key-pose bite supplied by the artist: brace, lift/open, dive, clamp, tear, recoil, reset.
@@ -3013,6 +3018,18 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
     fillPath(x,'#827b72',[[22,34+oy2],[28,38+oy2],[25,47+oy2],[21,44+oy2]]);
     fillPath(x,'#c1b9ad',[[35,37+oy2],[41,34+oy2],[39,44+oy2],[35,42+oy2]]);
     x.strokeStyle='#5a504b';x.lineWidth=1.05;x.beginPath();x.moveTo(31,25+oy2);x.lineTo(31,40+oy2);x.stroke();
+    if(torn){
+      // Two-thirds HP: sleeve and flank tear open, with a larger blood-soaked shoulder gap.
+      fillPath(x,'#531b20',[[22,26+oy2],[27,24+oy2],[29,30+oy2],[25,35+oy2],[21,33+oy2]]);
+      fillPath(x,'#272522',[[36,30+oy2],[42,28+oy2],[40,39+oy2],[35,37+oy2]]);
+      x.fillStyle='#a3242b';x.beginPath();x.ellipse(24.8,29.5+oy2,2.2,4.1,.28,0,Math.PI*2);x.fill();
+    }
+    if(critical){
+      // One-third HP: the remaining shirt is shredded and heavily stained.
+      fillPath(x,'#211f1e',[[23,35+oy2],[28,33+oy2],[27,43+oy2],[22,46+oy2]]);
+      fillPath(x,'#642026',[[31,26+oy2],[38,24+oy2],[40,34+oy2],[34,38+oy2],[29,34+oy2]]);
+      x.strokeStyle='#a3222b';x.lineWidth=2.5;x.beginPath();x.moveTo(28,25+oy2);x.lineTo(25,42+oy2);x.moveTo(35,24+oy2);x.lineTo(38,41+oy2);x.stroke();
+    }
   }
   // ripped shirt holes / ribs hints
   fillPath(x,'#2a2d29',[[27,25+oy2],[34,24+oy2],[32,28+oy2],[27,29+oy2]]); fillPath(x,'#2a2d29',[[35,31+oy2],[40,29+oy2],[39,35+oy2],[34,36+oy2]]);
@@ -3044,6 +3061,11 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   if(!armGone)claw(lHandX,lHandY,front?-1:-.35); claw(rHandX,rHandY,front?-1:.35);
   // bloody forearms/hands follow the hanging arm endpoints instead of forming a rigid V.
   x.strokeStyle='#8e1b24';x.lineWidth=2.4;x.beginPath();if(!armGone){x.moveTo(lHandX+(front?3:0),lHandY-4);x.lineTo(lHandX,lHandY);}x.moveTo(rHandX+(front?4:0),rHandY-4);x.lineTo(rHandX,rHandY);x.stroke();
+  if(plain&&armGone){
+    // Visible torn shoulder stump after the two-thirds-health arm break.
+    x.fillStyle='#651b20';x.beginPath();x.ellipse(24.8,28.2+oy2,3.2,4.0,-.35,0,Math.PI*2);x.fill();
+    x.fillStyle='#b53a35';x.beginPath();x.ellipse(24.2,27.4+oy2,1.25,2.0,-.35,0,Math.PI*2);x.fill();
+  }
   // Gaunt infected 3/4 face: the skull trails the torso by a few frames, then snaps back after the waist.
   x.save();
   if(hitStun>0){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(hitHead*.105);x.translate(hitHead*1.15,-Math.abs(hitHead)*.35);x.translate(-neckX,-neckY);}
@@ -3077,7 +3099,13 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   x.restore();
   // Dense, uneven black hair for the supplied reference; armoured variants retain the older sparse hair.
   if(plain){
-    fillPath(x,'#211d20',[[21,10+oy2],[22,4+oy2],[26,1+oy2],[31,0+oy2],[37,2+oy2],[41,6+oy2],[40,11+oy2],[36,8+oy2],[34,13+oy2],[31,8+oy2],[28,13+oy2],[26,8+oy2]]);
+    fillPath(x,'#211d20',critical?[[21,10+oy2],[22,5+oy2],[25,2+oy2],[28,4+oy2],[31,1+oy2],[34,5+oy2],[38,3+oy2],[41,7+oy2],[40,11+oy2],[36,8+oy2],[34,13+oy2],[31,8+oy2],[28,13+oy2],[26,8+oy2]]:[[21,10+oy2],[22,4+oy2],[26,1+oy2],[31,0+oy2],[37,2+oy2],[41,6+oy2],[40,11+oy2],[36,8+oy2],[34,13+oy2],[31,8+oy2],[28,13+oy2],[26,8+oy2]]);
+    if(critical){
+      // One-third HP: missing crown hair exposes torn scalp and pale skull.
+      x.fillStyle='#7d2027';x.beginPath();x.ellipse(31.5,3.6+oy2,5.4,3.5,-.12,0,Math.PI*2);x.fill();
+      x.fillStyle='#d0b58f';x.beginPath();x.ellipse(31.2,3.1+oy2,2.8,1.7,-.12,0,Math.PI*2);x.fill();
+      x.strokeStyle='#b82d32';x.lineWidth=1.2;x.beginPath();x.moveTo(28,2.7+oy2);x.lineTo(34.5,4.6+oy2);x.stroke();
+    }
     x.strokeStyle='#171417';x.lineWidth=1.8;x.beginPath();x.moveTo(23,7+oy2);x.lineTo(20,10+oy2);x.moveTo(27,4+oy2);x.lineTo(25,10+oy2);x.moveTo(31,3+oy2);x.lineTo(30,9+oy2);x.moveTo(36,4+oy2);x.lineTo(38,10+oy2);x.stroke();
   }else{
     x.strokeStyle='#262823';x.lineWidth=1.7;x.beginPath();x.moveTo(26,6+oy2);x.lineTo(23,2+oy2);x.moveTo(29,5+oy2);x.lineTo(28,0+oy2);x.moveTo(33,5+oy2);x.lineTo(35,1+oy2);x.moveTo(36,6+oy2);x.lineTo(40,3+oy2);x.stroke();
@@ -4317,7 +4345,7 @@ function render(){
           else if(z.type==='brain')drawBrainZombie(ctx,z,bitePhase);
           else if(z.type==='crawler')drawCrawler(ctx,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),bitePhase,z.crawlPhase);
           else if(z.type==='longhair')drawLongHairZombie(ctx,z,bitePhase);
-          else drawZombie(ctx,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='normal'||z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0);
+          else drawZombie(ctx,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='normal'||z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0,true,z.type==='normal'?(z.hp<=z.maxHp/3?2:(z.hp<=z.maxHp*2/3?1:0)):0);
         };if(z.bossSlide)drawCargoArticulated(c,z,drawBase);else drawBase(c);
       }));
       if(z.brainDropId&&z.type!=='giant')d.appendChild(makeCanvas(c=>drawBrainEatingOverlay(c,z)));
