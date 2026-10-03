@@ -330,6 +330,7 @@ const levelSelect=window.ZHEBAO_LEVEL_SELECT||{
   render:()=>{}
 };
 levelSelect.render(document.querySelector('.levelGrid'),LEVEL_IDS,LEVEL_UI);
+const BOARD_SCENES=window.ZHEBAO_SCENES||{};
 
 let plants=[],zombies=[],peas=[],suns=[],brainDrops=[],deathFx=[],coneFx=[],blastFx=[],peaImpactFx=[],bloodFx=[],deathBloodDrops=[],groundBloodFx=[],armFx=[],hpBreakFx=[],armorHpBreakFx=[],armorBreakFx=[],fireTiles=[],looseBuckets=[],magnetFx=[],crossFireFx=[],cooldowns={pea:0,sunflower:0,wall:0,potato:0,fan:0,lighter:0,magnet:0,crossfan:0,glove:0},sun=175,kills=0,spawned=0,selected='pea',running=false,battleStarted=false,ended=false,nextId=1,speedMul=1,currentLevel=1,levelCompletePending=false,wallUnlocked=false,potatoUnlocked=false,fanUnlocked=false,lighterUnlocked=false,magnetUnlocked=false,crossfanUnlocked=false,rewardType='wall',pendingLevel=1,selectedPlants=[],completedLevels=[];
 
@@ -419,7 +420,18 @@ function buildGrid(){
   grid.innerHTML='';
   grid.style.gridTemplateColumns=`repeat(${COLS},1fr)`;
   grid.style.gridTemplateRows=`repeat(${ROWS},1fr)`;
-  board.style.aspectRatio=`${COLS}/${ROWS}`;
+  const scene=BOARD_SCENES[ROWS]||BOARD_SCENES[5];
+  if(scene){
+    board.style.aspectRatio=String(scene.aspect);
+    board.style.backgroundImage=`url("${new URL(scene.image,document.baseURI).href}")`;
+    board.style.setProperty('--field-left',scene.field.left+'%');
+    board.style.setProperty('--field-right',scene.field.right+'%');
+    board.style.setProperty('--field-top',scene.field.top+'%');
+    board.style.setProperty('--field-bottom',scene.field.bottom+'%');
+    board.dataset.sceneRows=String(ROWS);
+  }else{
+    board.style.aspectRatio=`${COLS}/${ROWS}`;
+  }
   board.style.setProperty('--rows',ROWS);
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const b=document.createElement('button');b.className='cell';b.type='button';b.setAttribute('aria-label',`第${r+1}行第${c+1}格`);
@@ -446,8 +458,9 @@ function fitMobileBoard(){
   const bottomGap=8;
   const usableW=Math.max(320,vw-rail-sideGap*2);
   const usableH=Math.max(150,vh-topHud-bottomGap);
-  const fitW=Math.min(usableW,usableH*COLS/ROWS);
-  const fitH=fitW*ROWS/COLS;
+  const sceneAspect=Number(BOARD_SCENES[ROWS]?.aspect)||COLS/ROWS;
+  const fitW=Math.min(usableW,usableH*sceneAspect);
+  const fitH=fitW/sceneAspect;
   board.style.width=Math.floor(fitW)+'px';
   board.style.minWidth='0';
   if(wrap){
@@ -3979,7 +3992,7 @@ function drawRaidRamp(c,extend,closing){
 function moveLooseBucketPointer(e){
   if(!looseBucketDrag||e.pointerId!==looseBucketDrag.pointerId)return;
   const b=looseBuckets.find(x=>x.id===looseBucketDrag.id);if(!b)return;
-  const br=board.getBoundingClientRect();
+  const br=grid.getBoundingClientRect();
   const gx=Math.max(.05,Math.min(COLS-.05,(e.clientX-br.left)/br.width*COLS));
   const gy=Math.max(.05,Math.min(ROWS-.05,(e.clientY-br.top)/br.height*ROWS));
   const target=plants.find(p=>p.hp>0&&Math.abs((p.col+.5)-gx)<.5&&Math.abs((p.row+.5)-gy)<.5);
@@ -3995,7 +4008,7 @@ function releaseLooseBucketPointer(e){
   if(!looseBucketDrag||e.pointerId!==looseBucketDrag.pointerId)return;
   const drag=looseBucketDrag;looseBucketDrag=null;
   const b=looseBuckets.find(x=>x.id===drag.id);if(!b)return;
-  const br=board.getBoundingClientRect(),gx=(e.clientX-br.left)/br.width*COLS,gy=(e.clientY-br.top)/br.height*ROWS;
+  const br=grid.getBoundingClientRect(),gx=(e.clientX-br.left)/br.width*COLS,gy=(e.clientY-br.top)/br.height*ROWS;
   const snapped=drag.snapPlantId?plants.find(p=>p.id===drag.snapPlantId&&p.hp>0&&p.type!=='crossfan'):null;
   const nearest=plants.filter(p=>p.hp>0&&p.type!=='crossfan').sort((a,c)=>Math.hypot((a.col+.5)-gx,(a.row+.5)-gy)-Math.hypot((c.col+.5)-gx,(c.row+.5)-gy))[0];
   const target=snapped||(nearest&&Math.abs((nearest.col+.5)-gx)<.5&&Math.abs((nearest.row+.5)-gy)<.5?nearest:null);

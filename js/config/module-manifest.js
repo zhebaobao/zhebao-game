@@ -1,6 +1,6 @@
 // Single source of truth for browser module loading and registry validation.
 window.ZHEBAO_MODULE_MANIFEST={
-  version:'2026.10.03.1',
+  version:'2026.10.03.2',
   plants:[
     {id:'pea',src:'./plants/peashooter.js'},
     {id:'sunflower',src:'./plants/sunflower.js'},
@@ -37,6 +37,7 @@ window.ZHEBAO_MODULE_MANIFEST={
   ],
   runtime:[
     './js/config/game-config.js',
+    './js/config/scene-config.js',
     './js/save/progress.js',
     './js/ui/almanac-data.js',
     './js/ui/level-select.js',

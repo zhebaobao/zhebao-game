@@ -11,11 +11,13 @@
 | `js/bootstrap.js` | 按清单顺序加载模块并启动游戏 |
 | `css/game.css` | UI、响应式布局和 CSS 动画 |
 | `js/config/game-config.js` | 汇总植物、关卡和僵尸注册表；保存测试开关与存档键 |
+| `js/config/scene-config.js` | 不同行数战场的背景资源、画面比例与可玩区域坐标 |
 | `js/save/progress.js` | 存档规范化与 localStorage 读写 |
 | `js/ui/almanac-data.js` | 图鉴静态名称与说明文字 |
 | `js/ui/level-select.js` | 根据关卡注册表生成选关卡片与关卡编号 |
 | `js/game.js` | 尚未拆出的战斗流程、动画绘制和动态 UI |
 | `assets/portraits/` | 植物立绘资源 |
+| `assets/backgrounds/` | 两行、三行、五行工业战场背景 |
 
 ## 植物栏目
 
