@@ -6,5 +6,13 @@ window.ZHEBAO_ZOMBIES.normal={
   "speed": 0.21,
   "armor": 0,
   "armGone": false,
-  "gaitCadence": 0.72
+  "gaitCadence": 0.72,
+  "animations": {
+    "walk": { "frames": 12, "loop": true },
+    "hurt": { "frames": 6, "loop": false },
+    "death": { "frames": 8, "loop": false },
+    "idle": { "frames": 6, "loop": true },
+    "turn": { "frames": 4, "loop": false },
+    "blood": { "frames": 8, "overlay": true }
+  }
 };
