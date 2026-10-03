@@ -2892,7 +2892,7 @@ const NORMAL_ZOMBIE_SPRITES={
   reactions:{src:'assets/sprites/zombies/normal-reactions.png?v=2026.10.03.13',cols:20,rows:1,frames:20},
   damage:{src:'assets/sprites/zombies/normal-damage.png?v=2026.10.03.13',cols:3,rows:1,frames:3}
 };
-for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.image.src=sheet.src;sheet.bounds=[];}
+for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.bounds=[];sheet.image.addEventListener('load',()=>{sheet.bounds.length=0;if(typeof render==='function')render();},{once:true});sheet.image.src=sheet.src;}
 function normalZombieFrameBounds(sheet,index){
   if(sheet.bounds[index])return sheet.bounds[index];
   const img=sheet.image;if(!img.complete||!img.naturalWidth)return null;
