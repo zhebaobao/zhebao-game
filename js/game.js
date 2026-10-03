@@ -2886,6 +2886,7 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   const front=eatMode==='front', vertical=eatMode==='vertical';
   // The unarmoured walker has its own art direction; cone/bucket/brain variants keep their established silhouettes.
   const plain=plainModel&&!cone&&bucketHp<=0;
+  const idleMode=f==null;
   const woundStage=plain?Math.max(0,Math.min(2,damageStage||0)):0;
   const torn=woundStage>=1,critical=woundStage>=2;
   // One readable bite cycle: approach -> open -> clamp -> pull back. Damage timing stays independent.
@@ -2934,10 +2935,12 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   // Deliberate forward-stepping gait.
   // Zombies travel LEFT on the lawn, so a swinging foot must visibly lift and reach LEFT,
   // then stay planted while the pelvis moves past it. This removes the old moonwalk/back-step read.
-  const gp=((f||0)%1+1)%1, cyc=gp*Math.PI*2;
+  // Twelve authored walking phases; idle uses its own six-pose breathing/sway loop.
+  const gp=idleMode?0:(((f||0)%1+1)%1), walkFrame=Math.floor(gp*12)%12, cyc=gp*Math.PI*2;
+  const idleFrame=idleMode?(Math.floor(gameTime*4.2)%6):0,idleCyc=idleFrame/6*Math.PI*2;
   const smooth=t=>t*t*(3-2*t);
-  const bob=(.5-.5*Math.cos(cyc*2))*.72;
-  const hipSway=Math.sin(cyc)*.72;
+  const bob=idleMode?(Math.sin(idleCyc)*.32):((.5-.5*Math.cos(cyc*2))*.72);
+  const hipSway=idleMode?0:Math.sin(cyc)*.72;
   const oy2=oy+bob, hipY=38+oy2;
   const legPose=(phase,side)=>{
     const q=(gp+phase)%1;
@@ -2997,6 +3000,9 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   x.moveTo(R.footX+3.2,R.footY-R.heel*1.8);x.lineTo(R.footX-4.9,R.footY);x.stroke();
   // Upper body bends from the waist while the legs stay planted. This is the soft 'noodle' hit reaction.
   x.save();
+  // Shoulder/chest inertia follows the 12-step leg cycle; the six-frame idle breath is quieter and slower.
+  const torsoCycle=idleMode?Math.sin(idleCyc)*.018:Math.sin(cyc-.48)*.040;
+  x.translate(32,39+oy2);x.rotate(torsoCycle);x.translate((idleMode?Math.sin(idleCyc)*.22:Math.sin(cyc-.9)*.55),0);x.translate(-32,-39-oy2);
   if(hitStun>0){
     const waistX=32,waistY=39+oy2;
     x.translate(waistX,waistY);
@@ -3038,7 +3044,7 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   x.strokeStyle='#7e1720';x.lineWidth=2.3;x.beginPath();x.moveTo(31,25+oy2);x.lineTo(30,37+oy2);x.moveTo(35,27+oy2);x.lineTo(37,35+oy2);x.stroke();
   x.fillStyle='#a51e29';x.beginPath();x.ellipse(29,28+oy2,2.4,3.3,-.3,0,Math.PI*2);x.ellipse(37,34+oy2,2,2.7,.2,0,Math.PI*2);x.fill();
   // Arms hang loose beside the torso while walking, with a soft delayed noodle-like swing.
-  const armSwing=Math.sin(cyc-.55)*2.0, armLag=Math.sin(cyc-.95)*1.15;
+  const armSwing=idleMode?Math.sin(idleCyc)*.55:Math.sin(cyc-.55)*2.0, armLag=idleMode?Math.sin(idleCyc-.5)*.35:Math.sin(cyc-.95)*1.15;
   let lHandX=23+armSwing*.55, lHandY=48+oy2+Math.abs(armLag)*.7;
   let rHandX=41-armSwing*.55, rHandY=48+oy2+Math.abs(armLag)*.7;
   x.strokeStyle='#1a1e1a';x.lineWidth=5.5;x.beginPath();
@@ -3068,6 +3074,8 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   }
   // Gaunt infected 3/4 face: the skull trails the torso by a few frames, then snaps back after the waist.
   x.save();
+  // Head trails the shoulders by one walking pose, matching the supplied 12-frame lurch.
+  if(!front&&!vertical&&hitStun<=0){const neckX=32,neckY=26+oy2,headLag=idleMode?Math.sin(idleCyc-.65)*.025:Math.sin(cyc-.92)*.055;x.translate(neckX,neckY);x.rotate(headLag);x.translate(idleMode?0:Math.sin(cyc-1.15)*.45,0);x.translate(-neckX,-neckY);}
   if(hitStun>0){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(hitHead*.105);x.translate(hitHead*1.15,-Math.abs(hitHead)*.35);x.translate(-neckX,-neckY);}
   if(front||vertical){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(biteHeadRoll);x.translate(-neckX,-neckY);}
   x.translate(-biteReach,(vertical?biteReach*.12:0)+biteHeadDrop);
@@ -3637,7 +3645,28 @@ function drawFireZombieDeath(x,fx){
   }
   x.restore();x.globalAlpha=1;
 }
-function drawZombieDeath(x,cone,t){
+function drawNormalZombieFallDeath(x,t){
+  // Eight authored poses: stand -> buckle -> hand down -> knees -> shoulder impact -> prone -> settle.
+  const u=Math.max(0,Math.min(1,t/1.55));
+  const sample=pts=>{for(let i=1;i<pts.length;i++)if(u<=pts[i][0]){const a=pts[i-1],b=pts[i],q=(u-a[0])/(b[0]-a[0]||1),s=q*q*(3-2*q);return a[1]+(b[1]-a[1])*s;}return pts[pts.length-1][1];};
+  const bodyRot=sample([[0,0],[.14,.02],[.28,.13],[.42,.38],[.56,.76],[.70,1.12],[.84,1.40],[1,1.48]]);
+  const headRot=sample([[0,0],[.14,-.03],[.28,.04],[.42,.25],[.56,.54],[.70,.90],[.84,1.24],[1,1.38]]);
+  const drop=sample([[0,0],[.14,.4],[.28,2.2],[.42,6.8],[.56,11.8],[.70,15.8],[.84,18.0],[1,18.5]]);
+  const slide=sample([[0,0],[.28,0],[.42,1.0],[.56,3.8],[.70,7.5],[1,10.5]]);
+  const src=document.createElement('canvas');src.width=64;src.height=64;const s=src.getContext('2d');s.imageSmoothingEnabled=false;
+  drawZombie(s,false,0,null,false,true,0,0,0,0,true,2);
+  const part=(sx,sy,sw,sh,px,py,a,dx=0,dy=0)=>{x.save();x.translate(px+dx,py+dy);x.rotate(a);x.translate(-px,-py);x.beginPath();x.rect(sx,sy,sw,sh);x.clip();x.drawImage(src,0,0);x.restore();};
+  x.save();x.translate(slide,drop);
+  // Legs fold first, torso follows, and the head lags until the shoulder hits the ground.
+  part(5,37,54,27,31,48,bodyRot*.38,-slide*.15,0);
+  part(10,18,45,31,30,42,bodyRot,0,0);
+  part(12,0,42,28,31,25,headRot,Math.sin(u*Math.PI)*1.2,-Math.sin(u*Math.PI)*1.0);
+  x.restore();
+  if(u>.38){const q=Math.min(1,(u-.38)/.62);x.save();x.globalAlpha=.30+.55*q;x.fillStyle='#67151d';x.beginPath();x.ellipse(34+q*8,58,4+q*13,1+q*2.4,0,0,Math.PI*2);x.fill();x.restore();}
+}
+function drawZombieDeath(x,cone,t,zombieType=null){
+  if(zombieType==='normal'&&!cone){drawNormalZombieFallDeath(x,t);return;}
+  // Other zombie families retain their established internal-struggle rupture.
   // Long, readable internal struggle, then rupture. The spikes are silhouette deformation, not smoke.
   const struggleEnd=.90,burstStart=.90,end=1.72;
   const struggle=Math.min(1,t/struggleEnd),burst=Math.max(0,Math.min(1,(t-burstStart)/(end-burstStart)));
@@ -4431,7 +4460,7 @@ function render(){
   }
   for(const fx of deathFx){
     const d=document.createElement('div');d.className='entity '+((fx.type==='zombie'||fx.type==='brainZombie')?'zombie':'plant');d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);
-    d.appendChild(makeCanvas(c=>fx.type==='brainZombie'?drawBrainZombieDeath(c,fx):(fx.type==='zombie'?drawZombieDeath(c,fx.cone,fx.age):(fx.type==='ashZombie'?drawAshZombieDeath(c,fx):(fx.type==='fireZombie'?drawFireZombieDeath(c,fx):drawPlantDeath(c,fx.plantType,fx.age))))));frameUnits.appendChild(d);
+    d.appendChild(makeCanvas(c=>fx.type==='brainZombie'?drawBrainZombieDeath(c,fx):(fx.type==='zombie'?drawZombieDeath(c,fx.cone,fx.age,fx.zombieType):(fx.type==='ashZombie'?drawAshZombieDeath(c,fx):(fx.type==='fireZombie'?drawFireZombieDeath(c,fx):drawPlantDeath(c,fx.plantType,fx.age))))));frameUnits.appendChild(d);
   }
   for(const p of peas){const d=document.createElement('div');d.className='entity peaShot';d.style.left=pctX(p.x);d.style.top=pctY(p.y??(p.row+.39));d.appendChild(makeCanvas(c=>drawPeaProjectile(c,p)));frameUnits.appendChild(d)}
   for(const fx of peaImpactFx){const d=document.createElement('div');d.className='entity plant';d.style.left=pctX(fx.x);d.style.top=pctY(fx.y);d.style.zIndex=11;d.appendChild(makeCanvas(c=>drawPeaImpact(c,fx.age,!!fx.fire)));frameUnits.appendChild(d)}
@@ -4704,7 +4733,7 @@ document.getElementById('enterBattle').addEventListener('click',()=>{startLevel(
 const almanacScreen=document.getElementById('almanacScreen'),almanacGrid=document.getElementById('almanacGrid');
 let almanacRAF=0,almanacFocus=null,almanacReturn='levels';
 const dexEntries=window.ZHEBAO_ALMANAC_ENTRIES;
-function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else drawZombie(ctx,id==='cone',(t*.7)%1,null,false,false,0,0)}
+function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else drawZombie(ctx,id==='cone',id==='normal'?null:(t*.7)%1,null,false,false,0,0)}
 function isDexUnlocked(id){
   if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return true;
   if(id==='pea'||id==='sunflower')return true;
