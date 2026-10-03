@@ -922,7 +922,7 @@ function makeZombie(type,row,x=COLS+.18){
     attack:0,eating:false,eatMode:null,eatTargetId:null,walkTick:Math.random()*4,hurt:0,hitStun:0,
     armGone:!!archetype.armGone,lungeTime:0,lungePhase:0,bloodTick:0,gaitPhase:Math.random(),gaitCadence:archetype.gaitCadence,
     hairCooldown:0,hairAttack:0,brainEat:0,brainDropId:null,smashTime:0,smashCooldown:0,giantArmor:null,giantTransform:0,giantTransformTotal:3,giantFromType:null,
-    crawlPhase:Math.random(),lungeStartX:null,lungeEndX:null,lungeDuration:1.18,
+    crawlPhase:Math.random(),lungeStartX:null,lungeEndX:null,lungeDuration:1.50,
     entrailAnchorX:archetype.entrailAnchored?x:null,entrailPhase:Math.random()*Math.PI*2,entrailSpawnX:archetype.entrailAnchored?x:null,entrailTravel:0,entrailDetached:false,
     mountedToId:null,carriesImpId:null,airY:0,jumpTime:0,jumpDur:0,jumpMode:null,jumpFromX:null,jumpToX:null,jumpTargetId:null,
     digState:archetype.digState||null,digAge:0,digStartX:null,digEndX:null,digRise:0
@@ -1454,7 +1454,7 @@ function update(dt){
     if(z.lungeTime>0&&z.hitStun<=0){
       z.lungeTime=Math.max(0,z.lungeTime-dt*slowMul);
       if(Number.isFinite(z.lungeStartX)&&Number.isFinite(z.lungeEndX)){
-        const dur=z.lungeDuration||1.18, u=Math.max(0,Math.min(1,1-z.lungeTime/dur));
+        const dur=z.lungeDuration||1.50, u=Math.max(0,Math.min(1,1-z.lungeTime/dur));
         // Hold position through the warning/crouch, travel only during the forward dive,
         // then stay at the destination while the zombie absorbs impact and pushes upright.
         const travelU=u<.40?0:(u<.80?(u-.40)/.40:1);
@@ -1531,7 +1531,7 @@ function update(dt){
       else {
         const leap=same.filter(p=>{const d=z.x-(p.col+.5);return d>=0.72&&d<1.55;}).sort((a,b)=>b.col-a.col)[0];
         if(leap&&z.lungeTime<=0&&(z.lungeCooldown||0)<=0&&['normal','cone','bucket'].includes(z.type)){
-          z.lungeDuration=1.18; z.lungeTime=1.18; z.lungePhase=1.18;
+          z.lungeDuration=1.50; z.lungeTime=1.50; z.lungePhase=1.50;
           z.lungeStartX=z.x; z.lungeEndX=(leap.col+.5)+.50;playSfx('lunge',1,'lunge',100,z.x);
         }
       }
@@ -2911,7 +2911,7 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   const biteHeadDrop=poseSample([[0,0],[.13,-1.2],[.27,-.4],[.40,4.4],[.52,7.2],[.65,5.5],[.82,2.0],[1,0]]);
   const biteHeadRoll=poseSample([[0,0],[.13,-.05],[.27,-.12],[.40,.11],[.52,.22],[.65,.12],[.82,.04],[1,0]]);
   const biteArmReach=poseSample([[0,.08],[.13,.12],[.27,.38],[.40,.82],[.52,1],[.65,.88],[.82,.45],[1,.08]]);
-  const leapDur=1.18, lp=Math.max(0,Math.min(leapDur,lunge)), prog=lp>0?1-lp/leapDur:0;
+  const leapDur=1.50, lp=Math.max(0,Math.min(leapDur,lunge)), prog=lp>0?1-lp/leapDur:0;
   let crouch=0,air=0,lean=0,lungeCurl=0,lungeReach=0,lungeImpact=0;
   if(lp>0){
     if(prog<.18){const q=prog/.18;crouch=q*3.2;lean=q*1.2;lungeCurl=q*.08;lungeReach=q*.18;}
@@ -4376,7 +4376,7 @@ function render(){
       d.style.zIndex=z.mountedToId?'14':'11';
       d.appendChild(makeCanvas(c=>drawImp(c,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),!!z.mountedToId,bitePhase)));
     }else{
-      const airborne=z.lungeTime>0?-0.075*Math.sin(Math.max(0,Math.min(1,((1-z.lungeTime/(z.lungeDuration||1.18))-.40)/.40))*Math.PI):0; const wobbleY=z.eating?0:[0,-0.02,0,0.02][Math.floor(z.walkTick)%4]+airborne;
+      const airborne=z.lungeTime>0?-0.075*Math.sin(Math.max(0,Math.min(1,((1-z.lungeTime/(z.lungeDuration||1.50))-.40)/.40))*Math.PI):0; const wobbleY=z.eating?0:[0,-0.02,0,0.02][Math.floor(z.walkTick)%4]+airborne;
       const biteBodyLean=z.eating?(bitePhase<.34?bitePhase/.34*.025:bitePhase<.62?.025:(1-(bitePhase-.62)/.38)*.025):0;
       const poseX=z.eatMode==='front'?(-0.055-biteBodyLean):0;
       if((z.type==='normal'||z.type==='cone'||z.type==='bucket')&&z.hitStun>0)d.classList.add('normalHit');
