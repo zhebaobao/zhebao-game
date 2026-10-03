@@ -584,3 +584,14 @@ h1{font-size:28px;letter-spacing:1.8px;color:#f5f3d8;text-shadow:0 2px 0 #11160f
    This late, high-specificity rule overrides the mobile grid card layout. */
 #battleRoot .tools>.tool.hiddenPlant,
 #battleRoot .tools>.tool[hidden]{display:none!important}
+
+
+/* Wide battlefield scale: use the available desktop viewport and let units fill their cells. */
+#battleRoot.wrap{width:min(1240px,calc(100vw - 20px));max-width:none}
+#battleRoot .boardWrap{width:100%}
+#battleRoot .board{min-width:0}
+#battleRoot .plant{width:8.8%}
+#battleRoot .zombie{width:10.8%}
+@media(max-width:700px){
+  #battleRoot.wrap{width:100%;max-width:none;padding-left:4px;padding-right:4px}
+}
