@@ -2886,37 +2886,27 @@ function drawCargoArticulated(x,z,drawBase){
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
 const NORMAL_ZOMBIE_SPRITES={
-  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.14',cols:12,rows:1,frames:12},
-  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.14',cols:8,rows:1,frames:8},
-  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.14',cols:4,rows:2,frames:8},
-  reactions:{src:'assets/sprites/zombies/normal-reactions.png?v=2026.10.03.14',cols:20,rows:1,frames:20},
-  damage:{src:'assets/sprites/zombies/normal-damage.png?v=2026.10.03.14',cols:3,rows:1,frames:3}
+  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.15',cols:12,rows:1,frames:12,crop:[[13,251,181,537],[0,256,181,537],[0,248,181,537],[0,245,181,538],[0,255,181,538],[0,252,181,538],[0,244,181,538],[0,250,181,537],[0,255,181,538],[0,259,181,538],[0,251,181,538],[0,254,163,538]]},
+  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.15',cols:8,rows:1,frames:8,crop:[[0,212,272,516],[0,198,271,516],[0,235,271,519],[0,242,272,522],[0,231,269,522],[0,224,271,528],[0,216,271,521],[0,212,240,518]]},
+  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.15',cols:4,rows:2,frames:8,crop:[[82,127,351,413],[56,223,347,413],[4,171,382,411],[0,152,423,386],[41,163,413,358],[10,216,443,373],[57,141,395,364],[65,163,368,362]]},
+  damage:{src:'assets/sprites/zombies/normal-damage.png?v=2026.10.03.15',cols:3,rows:1,frames:3,crop:[[154,40,618,681],[124,40,563,681],[74,40,521,688]]}
 };
-for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.bounds=[];sheet.image.addEventListener('load',()=>{sheet.bounds.length=0;if(typeof render==='function')render();},{once:true});sheet.image.src=sheet.src;}
-function normalZombieFrameBounds(sheet,index){
-  if(sheet.bounds[index])return sheet.bounds[index];
-  const img=sheet.image;if(!img.complete||!img.naturalWidth)return null;
-  const cw=img.naturalWidth/sheet.cols,ch=img.naturalHeight/sheet.rows,col=index%sheet.cols,row=Math.floor(index/sheet.cols);
-  const scan=document.createElement('canvas');scan.width=Math.max(1,Math.ceil(cw));scan.height=Math.max(1,Math.ceil(ch));
-  const g=scan.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=false;
-  g.drawImage(img,col*cw,row*ch,cw,ch,0,0,scan.width,scan.height);
-  const data=g.getImageData(0,0,scan.width,scan.height).data;let minX=scan.width,minY=scan.height,maxX=-1,maxY=-1;
-  for(let y=0;y<scan.height;y++)for(let x=0;x<scan.width;x++)if(data[(y*scan.width+x)*4+3]>18){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
-  const b=maxX<0?{x:0,y:0,w:scan.width,h:scan.height}:{x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};
-  sheet.bounds[index]=b;return b;
-}
+for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.image.addEventListener('load',()=>{if(typeof render==='function')render();},{once:true});sheet.image.src=sheet.src;}
 function drawNormalZombieSpriteFrame(ctx,key,index){
   const sheet=NORMAL_ZOMBIE_SPRITES[key],img=sheet?.image;if(!sheet||!img.complete||!img.naturalWidth)return false;
   index=Math.max(0,Math.min(sheet.frames-1,Math.floor(index)));
   const cw=img.naturalWidth/sheet.cols,ch=img.naturalHeight/sheet.rows,col=index%sheet.cols,row=Math.floor(index/sheet.cols);
-  const b=normalZombieFrameBounds(sheet,index);if(!b)return false;
-  const fitW=key==='lunge'?54:48,fitH=key==='lunge'?50:55;
-  const scale=Math.min(fitW/b.w,fitH/b.h),dw=b.w*scale,dh=b.h*scale;
-  ctx.save();ctx.imageSmoothingEnabled=false;
-  // Supplied art faces right; gameplay approaches plants on the left.
-  ctx.translate(64,0);ctx.scale(-1,1);
-  ctx.drawImage(img,col*cw+b.x,row*ch+b.y,b.w,b.h,32-dw/2,63-dh,dw,dh);
+  const b=sheet.crop[index];if(!b)return false;
+  const sw=b[2]-b[0],sh=b[3]-b[1],fitW=key==='lunge'?54:48,fitH=key==='lunge'?50:55;
+  const scale=Math.min(fitW/sw,fitH/sh),dw=sw*scale,dh=sh*scale;
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(64,0);ctx.scale(-1,1);
+  ctx.drawImage(img,col*cw+b[0],row*ch+b[1],sw,sh,32-dw/2,63-dh,dw,dh);
   ctx.restore();return true;
+}
+function makeNormalZombieCanvas(draw){
+  const scale=MOBILE_RENDER_SCALE,c=document.createElement('canvas');
+  c.width=64*scale;c.height=64*scale;c.className='sprite';
+  const x=resetSpriteCanvas(c,scale);draw(x);return c;
 }
 function drawNormalZombieSprite(ctx,z,bitePhase=0){
   const hit=(z.hitStun||0)>0;
@@ -4438,13 +4428,13 @@ function render(){
       if(z.bossSlide){d.dataset.landingPhase=z.bossSlide.phase;d.style.zIndex='15';}
       if((z.giantTransform||0)>0)d.appendChild(makeLargeZombieCanvas(c=>drawGiantMutation(c,z)));
       else if(z.type==='giant')d.appendChild(makeLargeZombieCanvas(c=>drawMutantGiant(c,z)));
+      else if(z.type==='normal')d.appendChild(makeNormalZombieCanvas(c=>{const drawBase=ctx=>drawNormalZombieSprite(ctx,z,bitePhase);if(z.bossSlide)drawCargoArticulated(c,z,drawBase);else drawBase(c);}));
       else d.appendChild(makeCanvas(c=>{
         const drawBase=ctx=>{
           if(z.type==='miner'){if(z.digState==='underground'||z.digState==='rising')drawMinerMound(ctx,z);else drawMinerZombie(ctx,z,bitePhase);}
           else if(z.type==='brain')drawBrainZombie(ctx,z,bitePhase);
           else if(z.type==='crawler')drawCrawler(ctx,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),bitePhase,z.crawlPhase);
           else if(z.type==='longhair')drawLongHairZombie(ctx,z,bitePhase);
-          else if(z.type==='normal')drawNormalZombieSprite(ctx,z,bitePhase);
           else drawZombie(ctx,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0);
         };if(z.bossSlide)drawCargoArticulated(c,z,drawBase);else drawBase(c);
       }));
