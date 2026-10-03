@@ -2888,7 +2888,7 @@ function drawCargoArticulated(x,z,drawBase){
 const NORMAL_ZOMBIE_SPRITES={
   walk:{src:'assets/sprites/zombies/normal-walk.png',cols:12,rows:1,frames:12},
   bite:{src:'assets/sprites/zombies/normal-bite.png',cols:8,rows:1,frames:8},
-  lunge:{src:'assets/sprites/zombies/normal-lunge.png',cols:16,rows:2,frames:32},
+  lunge:{src:'assets/sprites/zombies/normal-lunge.png',cols:4,rows:2,frames:8},
   reactions:{src:'assets/sprites/zombies/normal-reactions.png',cols:20,rows:1,frames:20},
   damage:{src:'assets/sprites/zombies/normal-damage.png',cols:3,rows:1,frames:3}
 };
@@ -2910,7 +2910,8 @@ function drawNormalZombieSpriteFrame(ctx,key,index){
   index=Math.max(0,Math.min(sheet.frames-1,Math.floor(index)));
   const cw=img.naturalWidth/sheet.cols,ch=img.naturalHeight/sheet.rows,col=index%sheet.cols,row=Math.floor(index/sheet.cols);
   const b=normalZombieFrameBounds(sheet,index);if(!b)return false;
-  const scale=Math.min(60/b.w,62/b.h),dw=b.w*scale,dh=b.h*scale;
+  const fitW=key==='lunge'?54:48,fitH=key==='lunge'?50:55;
+  const scale=Math.min(fitW/b.w,fitH/b.h),dw=b.w*scale,dh=b.h*scale;
   ctx.save();ctx.imageSmoothingEnabled=false;
   // Supplied art faces right; gameplay approaches plants on the left.
   ctx.translate(64,0);ctx.scale(-1,1);
@@ -2918,13 +2919,23 @@ function drawNormalZombieSpriteFrame(ctx,key,index){
   ctx.restore();return true;
 }
 function drawNormalZombieSprite(ctx,z,bitePhase=0){
-  if((z.lungeTime||0)>0){const u=1-z.lungeTime/(z.lungeDuration||1.5);return drawNormalZombieSpriteFrame(ctx,'lunge',Math.min(31,Math.floor(Math.max(0,u)*32)));}
-  if((z.hitStun||0)>0){const u=1-z.hitStun/.40;return drawNormalZombieSpriteFrame(ctx,'reactions',Math.min(5,Math.floor(Math.max(0,u)*6)));}
-  if(z.eating)return drawNormalZombieSpriteFrame(ctx,'bite',Math.min(7,Math.floor(Math.max(0,bitePhase)*8)));
-  if(z.spriteIdle)return drawNormalZombieSpriteFrame(ctx,'reactions',14+(Math.floor(gameTime*4.2)%6));
-  const stage=z.hp<=z.maxHp/3?2:(z.hp<=z.maxHp*2/3?1:0);
-  if(stage>0)return drawNormalZombieSpriteFrame(ctx,'damage',stage);
-  return drawNormalZombieSpriteFrame(ctx,'walk',Math.floor((((z.walkTick||0)%1+1)%1)*12)%12);
+  const hit=(z.hitStun||0)>0;
+  ctx.save();
+  if(hit)ctx.translate(-Math.min(2.2,z.hitStun*7),0);
+  let drawn=false;
+  if((z.lungeTime||0)>0){
+    const u=Math.max(0,Math.min(1,1-z.lungeTime/(z.lungeDuration||1.5)));
+    drawn=drawNormalZombieSpriteFrame(ctx,'lunge',Math.min(7,Math.floor(u*8)));
+  }else if(z.eatMode||z.eating){
+    drawn=drawNormalZombieSpriteFrame(ctx,'bite',Math.min(7,Math.floor(Math.max(0,bitePhase)*8)));
+  }else{
+    const stage=z.hp<=z.maxHp/3?2:(z.hp<=z.maxHp*2/3?1:0);
+    if(stage>0)drawn=drawNormalZombieSpriteFrame(ctx,'damage',stage);
+    else drawn=drawNormalZombieSpriteFrame(ctx,'walk',Math.floor((gameTime*7.5+(z.id||0)*.37)%12));
+  }
+  if(!drawn)drawn=drawNormalZombieSpriteFrame(ctx,'damage',0);
+  ctx.restore();
+  return drawn;
 }
 function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0,plainModel=true,damageStage=0){
   const front=eatMode==='front', vertical=eatMode==='vertical';
@@ -3724,7 +3735,7 @@ function drawNormalZombieFallDeath(x,t){
   if(u>.38){const q=Math.min(1,(u-.38)/.62);x.save();x.globalAlpha=.30+.55*q;x.fillStyle='#67151d';x.beginPath();x.ellipse(34+q*8,58,4+q*13,1+q*2.4,0,0,Math.PI*2);x.fill();x.restore();}
 }
 function drawZombieDeath(x,cone,t,zombieType=null){
-  if(zombieType==='normal'&&!cone){const u=Math.max(0,Math.min(1,t/1.55)),frame=6+Math.min(7,Math.floor(u*8));drawNormalZombieSpriteFrame(x,'reactions',frame);return;}
+  if(zombieType==='normal'&&!cone){const u=Math.max(0,Math.min(1,t/1.55));x.save();x.translate(32,61);x.rotate(-Math.min(1.36,u*1.58));x.translate(-32,-61);drawNormalZombieSpriteFrame(x,'damage',u>.55?2:1);x.restore();return;}
   // Other zombie families retain their established internal-struggle rupture.
   // Long, readable internal struggle, then rupture. The spikes are silhouette deformation, not smoke.
   const struggleEnd=.90,burstStart=.90,end=1.72;
