@@ -2886,11 +2886,11 @@ function drawCargoArticulated(x,z,drawBase){
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
 const NORMAL_ZOMBIE_SPRITES={
-  walk:{src:'assets/sprites/zombies/normal-walk.png',cols:12,rows:1,frames:12},
-  bite:{src:'assets/sprites/zombies/normal-bite.png',cols:8,rows:1,frames:8},
-  lunge:{src:'assets/sprites/zombies/normal-lunge.png',cols:4,rows:2,frames:8},
-  reactions:{src:'assets/sprites/zombies/normal-reactions.png',cols:20,rows:1,frames:20},
-  damage:{src:'assets/sprites/zombies/normal-damage.png',cols:3,rows:1,frames:3}
+  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.13',cols:12,rows:1,frames:12},
+  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.13',cols:8,rows:1,frames:8},
+  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.13',cols:4,rows:2,frames:8},
+  reactions:{src:'assets/sprites/zombies/normal-reactions.png?v=2026.10.03.13',cols:20,rows:1,frames:20},
+  damage:{src:'assets/sprites/zombies/normal-damage.png?v=2026.10.03.13',cols:3,rows:1,frames:3}
 };
 for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.image.src=sheet.src;sheet.bounds=[];}
 function normalZombieFrameBounds(sheet,index){
