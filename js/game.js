@@ -2885,6 +2885,47 @@ function drawCargoArticulated(x,z,drawBase){
  x.strokeStyle='#667b55';x.lineWidth=4.2;x.lineCap='round';x.lineJoin='round';const hy=p==='dive'?25:55,sp=10+reach*10;x.beginPath();x.moveTo(24,28);x.quadraticCurveTo(18,38,32-sp,hy);x.moveTo(40,29);x.quadraticCurveTo(45,39,32+sp,hy);x.stroke();x.fillStyle='#526747';x.beginPath();x.arc(32-sp,hy,2.7,0,Math.PI*2);x.arc(32+sp,hy,2.7,0,Math.PI*2);x.fill();x.restore();
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
+const NORMAL_ZOMBIE_SPRITES={
+  walk:{src:'assets/sprites/zombies/normal-walk.png',cols:12,rows:1,frames:12},
+  bite:{src:'assets/sprites/zombies/normal-bite.png',cols:8,rows:1,frames:8},
+  lunge:{src:'assets/sprites/zombies/normal-lunge.png',cols:16,rows:2,frames:32},
+  reactions:{src:'assets/sprites/zombies/normal-reactions.png',cols:20,rows:1,frames:20},
+  damage:{src:'assets/sprites/zombies/normal-damage.png',cols:3,rows:1,frames:3}
+};
+for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.image.src=sheet.src;sheet.bounds=[];}
+function normalZombieFrameBounds(sheet,index){
+  if(sheet.bounds[index])return sheet.bounds[index];
+  const img=sheet.image;if(!img.complete||!img.naturalWidth)return null;
+  const cw=img.naturalWidth/sheet.cols,ch=img.naturalHeight/sheet.rows,col=index%sheet.cols,row=Math.floor(index/sheet.cols);
+  const scan=document.createElement('canvas');scan.width=Math.max(1,Math.ceil(cw));scan.height=Math.max(1,Math.ceil(ch));
+  const g=scan.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=false;
+  g.drawImage(img,col*cw,row*ch,cw,ch,0,0,scan.width,scan.height);
+  const data=g.getImageData(0,0,scan.width,scan.height).data;let minX=scan.width,minY=scan.height,maxX=-1,maxY=-1;
+  for(let y=0;y<scan.height;y++)for(let x=0;x<scan.width;x++)if(data[(y*scan.width+x)*4+3]>18){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+  const b=maxX<0?{x:0,y:0,w:scan.width,h:scan.height}:{x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};
+  sheet.bounds[index]=b;return b;
+}
+function drawNormalZombieSpriteFrame(ctx,key,index){
+  const sheet=NORMAL_ZOMBIE_SPRITES[key],img=sheet?.image;if(!sheet||!img.complete||!img.naturalWidth)return false;
+  index=Math.max(0,Math.min(sheet.frames-1,Math.floor(index)));
+  const cw=img.naturalWidth/sheet.cols,ch=img.naturalHeight/sheet.rows,col=index%sheet.cols,row=Math.floor(index/sheet.cols);
+  const b=normalZombieFrameBounds(sheet,index);if(!b)return false;
+  const scale=Math.min(60/b.w,62/b.h),dw=b.w*scale,dh=b.h*scale;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  // Supplied art faces right; gameplay approaches plants on the left.
+  ctx.translate(64,0);ctx.scale(-1,1);
+  ctx.drawImage(img,col*cw+b.x,row*ch+b.y,b.w,b.h,32-dw/2,63-dh,dw,dh);
+  ctx.restore();return true;
+}
+function drawNormalZombieSprite(ctx,z,bitePhase=0){
+  if((z.lungeTime||0)>0){const u=1-z.lungeTime/(z.lungeDuration||1.5);return drawNormalZombieSpriteFrame(ctx,'lunge',Math.min(31,Math.floor(Math.max(0,u)*32)));}
+  if((z.hitStun||0)>0){const u=1-z.hitStun/.40;return drawNormalZombieSpriteFrame(ctx,'reactions',Math.min(5,Math.floor(Math.max(0,u)*6)));}
+  if(z.eating)return drawNormalZombieSpriteFrame(ctx,'bite',Math.min(7,Math.floor(Math.max(0,bitePhase)*8)));
+  if(z.spriteIdle)return drawNormalZombieSpriteFrame(ctx,'reactions',14+(Math.floor(gameTime*4.2)%6));
+  const stage=z.hp<=z.maxHp/3?2:(z.hp<=z.maxHp*2/3?1:0);
+  if(stage>0)return drawNormalZombieSpriteFrame(ctx,'damage',stage);
+  return drawNormalZombieSpriteFrame(ctx,'walk',Math.floor((((z.walkTick||0)%1+1)%1)*12)%12);
+}
 function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0,plainModel=true,damageStage=0){
   const front=eatMode==='front', vertical=eatMode==='vertical';
   // The unarmoured walker has its own art direction; cone/bucket/brain variants keep their established silhouettes.
@@ -3683,7 +3724,7 @@ function drawNormalZombieFallDeath(x,t){
   if(u>.38){const q=Math.min(1,(u-.38)/.62);x.save();x.globalAlpha=.30+.55*q;x.fillStyle='#67151d';x.beginPath();x.ellipse(34+q*8,58,4+q*13,1+q*2.4,0,0,Math.PI*2);x.fill();x.restore();}
 }
 function drawZombieDeath(x,cone,t,zombieType=null){
-  if(zombieType==='normal'&&!cone){drawNormalZombieFallDeath(x,t);return;}
+  if(zombieType==='normal'&&!cone){const u=Math.max(0,Math.min(1,t/1.55)),frame=6+Math.min(7,Math.floor(u*8));drawNormalZombieSpriteFrame(x,'reactions',frame);return;}
   // Other zombie families retain their established internal-struggle rupture.
   // Long, readable internal struggle, then rupture. The spikes are silhouette deformation, not smoke.
   const struggleEnd=.90,burstStart=.90,end=1.72;
@@ -4392,7 +4433,8 @@ function render(){
           else if(z.type==='brain')drawBrainZombie(ctx,z,bitePhase);
           else if(z.type==='crawler')drawCrawler(ctx,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),bitePhase,z.crawlPhase);
           else if(z.type==='longhair')drawLongHairZombie(ctx,z,bitePhase);
-          else drawZombie(ctx,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='normal'||z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0,true,z.type==='normal'?(z.hp<=z.maxHp/3?2:(z.hp<=z.maxHp*2/3?1:0)):0);
+          else if(z.type==='normal')drawNormalZombieSprite(ctx,z,bitePhase);
+          else drawZombie(ctx,z.type==='cone'&&z.coneHp>0,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),z.armGone,z.lungeTime,bitePhase,(z.type==='cone'||z.type==='bucket')?z.hitStun:0,z.type==='bucket'?z.coneHp:0);
         };if(z.bossSlide)drawCargoArticulated(c,z,drawBase);else drawBase(c);
       }));
       if(z.brainDropId&&z.type!=='giant')d.appendChild(makeCanvas(c=>drawBrainEatingOverlay(c,z)));
@@ -4751,7 +4793,7 @@ document.getElementById('enterBattle').addEventListener('click',()=>{startLevel(
 const almanacScreen=document.getElementById('almanacScreen'),almanacGrid=document.getElementById('almanacGrid');
 let almanacRAF=0,almanacFocus=null,almanacReturn='levels';
 const dexEntries=window.ZHEBAO_ALMANAC_ENTRIES;
-function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else drawZombie(ctx,id==='cone',id==='normal'?null:(t*.7)%1,null,false,false,0,0)}
+function drawDex(ctx,id,t){ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;if(id==='pea')drawPea(ctx,0,{id:3,charge:(Math.sin(t*1.2)+1)*.18},false);else if(id==='sunflower')drawSunflower(ctx,0,{id:5},false);else if(id==='lighter')drawLighter(ctx,0,{id:15},false);else if(id==='wall')drawWall(ctx,0,0,false);else if(id==='potato')drawPotato(ctx,0,{armed:true,arm:6},false);else if(id==='fan')drawFan(ctx,0,{id:12},false);else if(id==='magnet')drawMagnet(ctx,0,{id:13},false);else if(id==='miner')drawMinerZombie(ctx,{id:19,type:'miner',walkTick:(t*.7)%1,eatMode:null,hurt:0,stun:0,armGone:false,lungeTime:0,hitStun:0},0);else if(id==='crawler')drawCrawler(ctx,(t*.45)%1,null,false,0,(t*.42)%1);else if(id==='imp')drawImp(ctx,(t*.9)%1,null,false,false,0);else if(id==='longhair')drawLongHairZombie(ctx,{walkTick:(t*.6)%1,hairAttack:(Math.sin(t*1.4)>.75?.36:0),hurt:0},0);else if(id==='brain')drawBrainZombie(ctx,{walkTick:(t*.38)%1,hurt:0,hitStun:0,armGone:false,lungeTime:0},0);else if(id==='giant')drawMutantGiant(ctx,{walkTick:(t*.35)%1,smashTime:Math.sin(t*1.5)>.7?.5:0,giantArmor:null,coneHp:0});else if(id==='normal')drawNormalZombieSprite(ctx,{type:'normal',hp:100,maxHp:100,walkTick:0,hitStun:0,lungeTime:0,eating:false,spriteIdle:true},0);else drawZombie(ctx,id==='cone',(t*.7)%1,null,false,false,0,0)}
 function isDexUnlocked(id){
   if(TEST_MODE||FINAL_TEST_UNLOCK_ALL)return true;
   if(id==='pea'||id==='sunflower')return true;
