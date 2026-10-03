@@ -2886,12 +2886,12 @@ function drawCargoArticulated(x,z,drawBase){
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
 const NORMAL_ZOMBIE_SPRITES={
-  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.17',cols:12,rows:1,frames:12},
-  wounded:{src:'assets/sprites/zombies/normal-walk-wounded.png?v=2026.10.03.17',cols:12,rows:1,frames:12},
-  critical:{src:'assets/sprites/zombies/normal-walk-critical.png?v=2026.10.03.17',cols:12,rows:1,frames:12},
-  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.17',cols:8,rows:1,frames:8},
-  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.17',cols:4,rows:2,frames:8},
-  death:{src:'assets/sprites/zombies/normal-death.png?v=2026.10.03.17',cols:4,rows:2,frames:8}
+  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.18',cols:12,rows:1,frames:12},
+  wounded:{src:'assets/sprites/zombies/normal-walk-wounded.png?v=2026.10.03.18',cols:12,rows:1,frames:12},
+  critical:{src:'assets/sprites/zombies/normal-walk-critical.png?v=2026.10.03.18',cols:12,rows:1,frames:12},
+  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.18',cols:8,rows:1,frames:8},
+  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.18',cols:4,rows:2,frames:8},
+  death:{src:'assets/sprites/zombies/normal-death.png?v=2026.10.03.18',cols:4,rows:2,frames:8}
 };
 for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.image.addEventListener('load',()=>{if(typeof render==='function')render();},{once:true});sheet.image.src=sheet.src;}
 function drawNormalZombieSpriteFrame(ctx,key,index){
@@ -3722,7 +3722,26 @@ function drawNormalZombieFallDeath(x,t){
   if(u>.38){const q=Math.min(1,(u-.38)/.62);x.save();x.globalAlpha=.30+.55*q;x.fillStyle='#67151d';x.beginPath();x.ellipse(34+q*8,58,4+q*13,1+q*2.4,0,0,Math.PI*2);x.fill();x.restore();}
 }
 function drawZombieDeath(x,cone,t,zombieType=null){
-  if(zombieType==='normal'&&!cone){const u=Math.max(0,Math.min(.999,t/1.55));drawNormalZombieSpriteFrame(x,'death',Math.floor(u*8));return;}
+  if(zombieType==='normal'&&!cone){
+    const u=Math.max(0,Math.min(.999,t/1.55));
+    drawNormalZombieSpriteFrame(x,'death',Math.floor(u*8));
+    // The shoulder and hands hit the floor between authored poses 4 and 5.
+    // A short dirt/blood impulse makes the knockdown readable without changing damage logic.
+    const impact=Math.max(0,1-Math.abs(u-.52)/.15);
+    if(impact>0){
+      const burst=Math.sin(Math.min(1,impact)*Math.PI*.5);
+      x.save();x.globalAlpha=.82*impact;
+      x.strokeStyle='#a58c68';x.lineWidth=1.25;
+      x.beginPath();x.ellipse(37,57,7+burst*16,1.5+burst*2.2,0,Math.PI,Math.PI*2);x.stroke();
+      for(let i=0;i<7;i++){
+        const side=i%2?-1:1,spread=5+i*2.45;
+        x.fillStyle=i%3===0?'#8f2630':'#826d50';
+        x.beginPath();x.arc(37+side*spread*burst,56-(2+(i%4)*1.7)*burst,.75+(i%3)*.28,0,Math.PI*2);x.fill();
+      }
+      x.restore();
+    }
+    return;
+  }
   // Other zombie families retain their established internal-struggle rupture.
   // Long, readable internal struggle, then rupture. The spikes are silhouette deformation, not smoke.
   const struggleEnd=.90,burstStart=.90,end=1.72;
