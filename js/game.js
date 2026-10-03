@@ -2870,8 +2870,10 @@ function drawCargoArticulated(x,z,drawBase){
  x.strokeStyle='#667b55';x.lineWidth=4.2;x.lineCap='round';x.lineJoin='round';const hy=p==='dive'?25:55,sp=10+reach*10;x.beginPath();x.moveTo(24,28);x.quadraticCurveTo(18,38,32-sp,hy);x.moveTo(40,29);x.quadraticCurveTo(45,39,32+sp,hy);x.stroke();x.fillStyle='#526747';x.beginPath();x.arc(32-sp,hy,2.7,0,Math.PI*2);x.arc(32+sp,hy,2.7,0,Math.PI*2);x.fill();x.restore();
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
-function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0){
+function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0,plainModel=true){
   const front=eatMode==='front', vertical=eatMode==='vertical';
+  // The unarmoured walker has its own art direction; cone/bucket/brain variants keep their established silhouettes.
+  const plain=plainModel&&!cone&&bucketHp<=0;
   // One readable bite cycle: approach -> open -> clamp -> pull back. Damage timing stays independent.
   const bp=(front||vertical)?Math.max(0,Math.min(1,bitePhase)):0;
   const biteReach=(front||vertical)?(bp<.34?bp/.34*5.8:bp<.58?5.8:bp<.82?(1-(bp-.58)/.24)*5.8:0):0;
@@ -2979,11 +2981,19 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   }
   x.translate(-biteBody,biteDrop);
   if(front||vertical) x.rotate(-biteBody*.010);
-  // torn trousers and gaunt torso
-  fillPath(x,'#252b29',[[25,35+oy2],[39,35+oy2],[40,43+oy2],[35,42+oy2],[32,46+oy2],[28,42+oy2],[23,43+oy2]]);
+  // Torn trousers and the normal walker's long, filthy off-white work shirt.
+  fillPath(x,plain?'#29272a':'#252b29',[[25,35+oy2],[39,35+oy2],[40,43+oy2],[35,42+oy2],[32,46+oy2],[28,42+oy2],[23,43+oy2]]);
   fillPath(x,'#1c211d',[[24,22+oy2],[39,21+oy2],[43,35+oy2],[37,41+oy2],[26,40+oy2],[20,31+oy2]]);
-  fillPath(x,'#52594f',[[25,23+oy2],[38,22+oy2],[41,35+oy2],[36,39+oy2],[27,38+oy2],[22,31+oy2]]);
-  fillPath(x,'#6a7164',[[26,24+oy2],[32,23+oy2],[30,36+oy2],[26,37+oy2],[23.5,31+oy2]]);
+  fillPath(x,plain?'#aaa398':'#52594f',[[25,23+oy2],[38,22+oy2],[42,35+oy2],[38,43+oy2],[33,41+oy2],[29,46+oy2],[26,40+oy2],[21,42+oy2],[22,31+oy2]]);
+  fillPath(x,plain?'#d2cbc0':'#6a7164',[[26,24+oy2],[32,23+oy2],[30,36+oy2],[26,39+oy2],[23.5,31+oy2]]);
+  if(plain){
+    // Collar, torn hem and dangling cloth reproduce the supplied hunched worker silhouette.
+    fillPath(x,'#ddd5c8',[[24,22+oy2],[30,21+oy2],[32,26+oy2],[27,29+oy2]]);
+    fillPath(x,'#5b5550',[[34,22+oy2],[39,21+oy2],[37,29+oy2],[32,26+oy2]]);
+    fillPath(x,'#827b72',[[22,34+oy2],[28,38+oy2],[25,47+oy2],[21,44+oy2]]);
+    fillPath(x,'#c1b9ad',[[35,37+oy2],[41,34+oy2],[39,44+oy2],[35,42+oy2]]);
+    x.strokeStyle='#5a504b';x.lineWidth=1.05;x.beginPath();x.moveTo(31,25+oy2);x.lineTo(31,40+oy2);x.stroke();
+  }
   // ripped shirt holes / ribs hints
   fillPath(x,'#2a2d29',[[27,25+oy2],[34,24+oy2],[32,28+oy2],[27,29+oy2]]); fillPath(x,'#2a2d29',[[35,31+oy2],[40,29+oy2],[39,35+oy2],[34,36+oy2]]);
   x.strokeStyle='#8e9585';x.lineWidth=1.15;x.beginPath();x.moveTo(28,30+oy2);x.lineTo(34,31+oy2);x.moveTo(28,33+oy2);x.lineTo(34,34+oy2);x.stroke();
@@ -3019,9 +3029,9 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   if(hitStun>0){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(hitHead*.105);x.translate(hitHead*1.15,-Math.abs(hitHead)*.35);x.translate(-neckX,-neckY);}
   x.translate(-biteReach, vertical?biteReach*.12:0);
   x.fillStyle='#1b201c';x.beginPath();x.moveTo(26,2.8+oy2);x.bezierCurveTo(36,1+oy2,42.5,7.2+oy2,41.8,15.5+oy2);x.bezierCurveTo(41.4,20+oy2,39.4,23.2+oy2,36.8,25.6+oy2);x.lineTo(29.2,28.6+oy2);x.bezierCurveTo(21.5,26.4+oy2,19.8,20.5+oy2,20.7,12.4+oy2);x.bezierCurveTo(21.2,7+oy2,23.3,4.5+oy2,26,2.8+oy2);x.fill();
-  x.fillStyle='#60695d';x.beginPath();x.moveTo(27,4+oy2);x.bezierCurveTo(36,2+oy2,41,8+oy2,40,15+oy2);x.bezierCurveTo(40,19+oy2,38,22+oy2,36,24+oy2);x.lineTo(30,27+oy2);x.bezierCurveTo(23,25+oy2,21,20+oy2,22,13+oy2);x.bezierCurveTo(22,8+oy2,24,6+oy2,27,4+oy2);x.fill();
+  x.fillStyle=plain?'#899077':'#60695d';x.beginPath();x.moveTo(27,4+oy2);x.bezierCurveTo(36,2+oy2,41,8+oy2,40,15+oy2);x.bezierCurveTo(40,19+oy2,38,22+oy2,36,24+oy2);x.lineTo(30,27+oy2);x.bezierCurveTo(23,25+oy2,21,20+oy2,22,13+oy2);x.bezierCurveTo(22,8+oy2,24,6+oy2,27,4+oy2);x.fill();
   // exposed cheek plane and sickly forehead highlight
-  x.fillStyle='#7c8574';x.beginPath();x.moveTo(26,6+oy2);x.quadraticCurveTo(33,4+oy2,37,8+oy2);x.lineTo(34,13+oy2);x.lineTo(25,12+oy2);x.closePath();x.fill();
+  x.fillStyle=plain?'#a4a88c':'#7c8574';x.beginPath();x.moveTo(26,6+oy2);x.quadraticCurveTo(33,4+oy2,37,8+oy2);x.lineTo(34,13+oy2);x.lineTo(25,12+oy2);x.closePath();x.fill();
   // Deep, unequal sockets under a hard brow.
   x.fillStyle='#211d1b';x.beginPath();x.ellipse(26.8,14.2+oy2,3.8,3.1,-.22,0,Math.PI*2);x.ellipse(35.5,14.8+oy2,2.7,2.8,.18,0,Math.PI*2);x.fill();
   x.strokeStyle='#34392f';x.lineWidth=2.0;x.beginPath();x.moveTo(22.8,10.7+oy2);x.lineTo(29.6,12.0+oy2);x.moveTo(32.8,11.8+oy2);x.lineTo(38.6,11.0+oy2);x.stroke();
@@ -3044,8 +3054,13 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   x.strokeStyle='#c2b99a';x.lineWidth=1.0;x.beginPath();x.moveTo(24.5,21.0+oy2);x.lineTo(27.5,22.1+oy2);x.moveTo(37.0,18.6+oy2);x.lineTo(39.1,19.5+oy2);x.stroke();
   if(biteClamp){x.strokeStyle='rgba(190,35,45,.8)';x.lineWidth=1.1;x.beginPath();x.moveTo(39,25+oy2);x.lineTo(43,27+oy2);x.stroke();}
   x.restore();
-  // sparse filthy hair
-  x.strokeStyle='#262823';x.lineWidth=1.7;x.beginPath();x.moveTo(26,6+oy2);x.lineTo(23,2+oy2);x.moveTo(29,5+oy2);x.lineTo(28,0+oy2);x.moveTo(33,5+oy2);x.lineTo(35,1+oy2);x.moveTo(36,6+oy2);x.lineTo(40,3+oy2);x.stroke();
+  // Dense, uneven black hair for the supplied reference; armoured variants retain the older sparse hair.
+  if(plain){
+    fillPath(x,'#211d20',[[21,10+oy2],[22,4+oy2],[26,1+oy2],[31,0+oy2],[37,2+oy2],[41,6+oy2],[40,11+oy2],[36,8+oy2],[34,13+oy2],[31,8+oy2],[28,13+oy2],[26,8+oy2]]);
+    x.strokeStyle='#171417';x.lineWidth=1.8;x.beginPath();x.moveTo(23,7+oy2);x.lineTo(20,10+oy2);x.moveTo(27,4+oy2);x.lineTo(25,10+oy2);x.moveTo(31,3+oy2);x.lineTo(30,9+oy2);x.moveTo(36,4+oy2);x.lineTo(38,10+oy2);x.stroke();
+  }else{
+    x.strokeStyle='#262823';x.lineWidth=1.7;x.beginPath();x.moveTo(26,6+oy2);x.lineTo(23,2+oy2);x.moveTo(29,5+oy2);x.lineTo(28,0+oy2);x.moveTo(33,5+oy2);x.lineTo(35,1+oy2);x.moveTo(36,6+oy2);x.lineTo(40,3+oy2);x.stroke();
+  }
   // cone variant keeps armor identity, but dirtier/darker
   if(cone){
     fillPath(x,'#4b2d1d',[[22,-1+oy2],[41,1+oy2],[47,15.5+oy2],[17.5,15.5+oy2]]);
@@ -3117,7 +3132,7 @@ function drawBrainZombie(x,z,bitePhase=0){
   // Start from the familiar walker silhouette, then expose the broken crown and pink brain.
   const wobble=Math.sin((z.walkTick||0)*Math.PI*2)*.12;
   x.save();x.translate(32,35);x.rotate(wobble);x.translate(-32,-35);
-  drawZombie(x,false,z.walkTick,z.eatMode,(z.hurt>0||z.hitStun>0),z.armGone,z.lungeTime,bitePhase,z.hitStun,0);
+  drawZombie(x,false,z.walkTick,z.eatMode,(z.hurt>0||z.hitStun>0),z.armGone,z.lungeTime,bitePhase,z.hitStun,0,false);
   x.fillStyle='#171817';x.beginPath();x.moveTo(23,7);x.lineTo(27,2);x.lineTo(31,5);x.lineTo(35,1);x.lineTo(41,7);x.closePath();x.fill();
   x.fillStyle='#f28bb4';x.strokeStyle='#7d3152';x.lineWidth=1.2;x.beginPath();x.ellipse(32,7,9,5.7,-.08,0,Math.PI*2);x.fill();x.stroke();
   x.strokeStyle='#b84e7b';x.lineWidth=1.1;
