@@ -922,7 +922,7 @@ function makeZombie(type,row,x=COLS+.18){
     attack:0,eating:false,eatMode:null,eatTargetId:null,walkTick:Math.random()*4,hurt:0,hitStun:0,
     armGone:!!archetype.armGone,lungeTime:0,lungePhase:0,bloodTick:0,gaitPhase:Math.random(),gaitCadence:archetype.gaitCadence,
     hairCooldown:0,hairAttack:0,brainEat:0,brainDropId:null,smashTime:0,smashCooldown:0,giantArmor:null,giantTransform:0,giantTransformTotal:3,giantFromType:null,
-    crawlPhase:Math.random(),lungeStartX:null,lungeEndX:null,lungeDuration:.58,
+    crawlPhase:Math.random(),lungeStartX:null,lungeEndX:null,lungeDuration:1.18,
     entrailAnchorX:archetype.entrailAnchored?x:null,entrailPhase:Math.random()*Math.PI*2,entrailSpawnX:archetype.entrailAnchored?x:null,entrailTravel:0,entrailDetached:false,
     mountedToId:null,carriesImpId:null,airY:0,jumpTime:0,jumpDur:0,jumpMode:null,jumpFromX:null,jumpToX:null,jumpTargetId:null,
     digState:archetype.digState||null,digAge:0,digStartX:null,digEndX:null,digRise:0
@@ -1454,8 +1454,11 @@ function update(dt){
     if(z.lungeTime>0&&z.hitStun<=0){
       z.lungeTime=Math.max(0,z.lungeTime-dt*slowMul);
       if(Number.isFinite(z.lungeStartX)&&Number.isFinite(z.lungeEndX)){
-        const dur=z.lungeDuration||.58, u=Math.max(0,Math.min(1,1-z.lungeTime/dur));
-        const ease=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+        const dur=z.lungeDuration||1.18, u=Math.max(0,Math.min(1,1-z.lungeTime/dur));
+        // Hold position through the warning/crouch, travel only during the forward dive,
+        // then stay at the destination while the zombie absorbs impact and pushes upright.
+        const travelU=u<.40?0:(u<.80?(u-.40)/.40:1);
+        const ease=travelU<.5?2*travelU*travelU:1-Math.pow(-2*travelU+2,2)/2;
         z.x=z.lungeStartX+(z.lungeEndX-z.lungeStartX)*ease;
         if(z.lungeTime<=0){z.x=z.lungeEndX;z.lungeStartX=null;z.lungeEndX=null;z.lungeCooldown=15;}
       }
@@ -1528,7 +1531,7 @@ function update(dt){
       else {
         const leap=same.filter(p=>{const d=z.x-(p.col+.5);return d>=0.72&&d<1.55;}).sort((a,b)=>b.col-a.col)[0];
         if(leap&&z.lungeTime<=0&&(z.lungeCooldown||0)<=0&&['normal','cone','bucket'].includes(z.type)){
-          z.lungeDuration=.58; z.lungeTime=.58; z.lungePhase=.58;
+          z.lungeDuration=1.18; z.lungeTime=1.18; z.lungePhase=1.18;
           z.lungeStartX=z.x; z.lungeEndX=(leap.col+.5)+.50;playSfx('lunge',1,'lunge',100,z.x);
         }
       }
@@ -2908,9 +2911,16 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   const biteHeadDrop=poseSample([[0,0],[.13,-1.2],[.27,-.4],[.40,4.4],[.52,7.2],[.65,5.5],[.82,2.0],[1,0]]);
   const biteHeadRoll=poseSample([[0,0],[.13,-.05],[.27,-.12],[.40,.11],[.52,.22],[.65,.12],[.82,.04],[1,0]]);
   const biteArmReach=poseSample([[0,.08],[.13,.12],[.27,.38],[.40,.82],[.52,1],[.65,.88],[.82,.45],[1,.08]]);
-  const leapDur=.58, lp=Math.max(0,Math.min(leapDur,lunge)), prog=lp>0?1-lp/leapDur:0;
-  let crouch=0,air=0,lean=0;
-  if(lp>0){ if(prog<.16){crouch=prog/.16*4.5;lean=prog/.16*5;} else if(prog<.88){const q=(prog-.16)/.72;air=-Math.sin(q*Math.PI)*12.5;lean=8.5;} else {const q=(prog-.88)/.12;crouch=(1-q)*2.2;lean=(1-q)*6;} }
+  const leapDur=1.18, lp=Math.max(0,Math.min(leapDur,lunge)), prog=lp>0?1-lp/leapDur:0;
+  let crouch=0,air=0,lean=0,lungeCurl=0,lungeReach=0,lungeImpact=0;
+  if(lp>0){
+    if(prog<.18){const q=prog/.18;crouch=q*3.2;lean=q*1.2;lungeCurl=q*.08;lungeReach=q*.18;}
+    else if(prog<.40){const q=(prog-.18)/.22;crouch=3.2+q*9.0;lean=1.2+q*3.2;lungeCurl=.08+q*.22;lungeReach=.18+q*.35;}
+    else if(prog<.58){const q=(prog-.40)/.18;crouch=12.2*(1-q);air=-Math.sin(q*Math.PI*.72)*10.5;lean=4.4+q*7.5;lungeCurl=.30*(1-q);lungeReach=.53+q*.47;}
+    else if(prog<.80){const q=(prog-.58)/.22;air=-10.5+q*7.0;lean=11.9;lungeCurl=-.04+q*.10;lungeReach=1;}
+    else if(prog<.90){const q=(prog-.80)/.10;crouch=5.0+q*7.5;lean=11.9-q*2.2;lungeCurl=.06+q*.34;lungeReach=1-q*.20;lungeImpact=Math.sin(q*Math.PI);}
+    else{const q=(prog-.90)/.10;crouch=12.5*(1-q);lean=9.7*(1-q);lungeCurl=.40*(1-q);lungeReach=.80*(1-q);}
+  }
   // Normal-zombie pea hit is articulated above the hips; do not shove the whole body like a rigid board.
   const recoil=(hurt&&hitStun<=0)?2.2:0;
   let hitTorso=0,hitHead=0,hitStretch=0,hitShear=0;
@@ -2936,7 +2946,7 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   // Zombies travel LEFT on the lawn, so a swinging foot must visibly lift and reach LEFT,
   // then stay planted while the pelvis moves past it. This removes the old moonwalk/back-step read.
   // Twelve authored walking phases; idle uses its own six-pose breathing/sway loop.
-  const gp=idleMode?0:(((f||0)%1+1)%1), walkFrame=Math.floor(gp*12)%12, cyc=gp*Math.PI*2;
+  const gp=lp>0?.48:(idleMode?0:(((f||0)%1+1)%1)), walkFrame=Math.floor(gp*12)%12, cyc=gp*Math.PI*2;
   const idleFrame=idleMode?(Math.floor(gameTime*4.2)%6):0,idleCyc=idleFrame/6*Math.PI*2;
   const smooth=t=>t*t*(3-2*t);
   const bob=idleMode?(Math.sin(idleCyc)*.32):((.5-.5*Math.cos(cyc*2))*.72);
@@ -2984,7 +2994,12 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
     return {hipX,footX,footY,kneeX,kneeY,heel};
   };
   const L=legPose(0,-1), R=legPose(.5,1);
-  x.save(); x.translate(-lean+recoil,0); x.rotate(-.045-lean*.006);
+  if(lp>0){
+    const tuck=Math.sin(Math.min(1,Math.max(0,(prog-.38)/.48))*Math.PI);
+    L.kneeX+=2.5*tuck;L.kneeY-=5.5*tuck;L.footX+=5.0*tuck;L.footY-=4.0*tuck;
+    R.kneeX-=1.5*tuck;R.kneeY-=4.0*tuck;R.footX+=2.5*tuck;R.footY-=5.5*tuck;
+  }
+  x.save(); x.translate(-lean+recoil,lungeImpact*1.4); x.rotate(-.045-lean*.006+lungeCurl);
   x.globalAlpha=.25;x.fillStyle='#141b15';x.beginPath();x.ellipse(32,60.3+oy,14.5,3.0,0,0,Math.PI*2);x.fill();x.globalAlpha=1;
   // Long legs use a dark silhouette pass plus an inner material pass.
   x.lineCap='round'; x.strokeStyle='#171b18'; x.lineWidth=6.3; x.beginPath();
@@ -3051,12 +3066,14 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   if(!armGone){
     if(front){lHandX=23-13*biteArmReach;lHandY=48+oy2-6*biteArmReach;rHandX=41-25*biteArmReach;rHandY=48+oy2-5*biteArmReach;x.moveTo(25,27+oy2);x.lineTo(24-8*biteArmReach,36+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(39-15*biteArmReach,38+oy2);x.lineTo(rHandX,rHandY);}
     else if(vertical){lHandX=21;lHandY=49+oy2;rHandX=40;rHandY=49+oy2;x.moveTo(25,28+oy2);x.lineTo(20,40+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,28+oy2);x.lineTo(42,40+oy2);x.lineTo(rHandX,rHandY);}
+    else if(lp>0){lHandX=23-20*lungeReach;lHandY=48+oy2-13*lungeReach;rHandX=41-31*lungeReach;rHandY=48+oy2-11*lungeReach;x.moveTo(25,27+oy2);x.lineTo(20-9*lungeReach,35+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(32-13*lungeReach,36+oy2);x.lineTo(rHandX,rHandY);}
     else{x.moveTo(25,27+oy2);x.quadraticCurveTo(24+armSwing*.35,37+oy2,23+armSwing*.45,41+oy2);x.quadraticCurveTo(22+armLag*.55,45+oy2,lHandX,lHandY);x.moveTo(38,27+oy2);x.quadraticCurveTo(40-armSwing*.35,37+oy2,40-armSwing*.45,41+oy2);x.quadraticCurveTo(42-armLag*.55,45+oy2,rHandX,rHandY);}
   }else{if(front){rHandX=16;rHandY=43+oy2;x.moveTo(38,27+oy2);x.lineTo(24,39+oy2);x.lineTo(rHandX,rHandY);}else if(vertical){rHandX=40;rHandY=49+oy2;x.moveTo(38,28+oy2);x.lineTo(42,40+oy2);x.lineTo(rHandX,rHandY);}else{x.moveTo(38,27+oy2);x.quadraticCurveTo(40-armSwing*.35,37+oy2,40-armSwing*.45,41+oy2);x.quadraticCurveTo(42-armLag*.55,45+oy2,rHandX,rHandY);}}x.stroke();
   x.strokeStyle='#77816f';x.lineWidth=3.2;x.beginPath();
   if(!armGone){
     if(front){x.moveTo(25,27+oy2);x.lineTo(24-8*biteArmReach,36+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(39-15*biteArmReach,38+oy2);x.lineTo(rHandX,rHandY);}
     else if(vertical){x.moveTo(25,28+oy2);x.lineTo(20,40+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,28+oy2);x.lineTo(42,40+oy2);x.lineTo(rHandX,rHandY);}
+    else if(lp>0){x.moveTo(25,27+oy2);x.lineTo(20-9*lungeReach,35+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(32-13*lungeReach,36+oy2);x.lineTo(rHandX,rHandY);}
     else{x.moveTo(25,27+oy2);x.quadraticCurveTo(24+armSwing*.35,37+oy2,23+armSwing*.45,41+oy2);x.quadraticCurveTo(22+armLag*.55,45+oy2,lHandX,lHandY);x.moveTo(38,27+oy2);x.quadraticCurveTo(40-armSwing*.35,37+oy2,40-armSwing*.45,41+oy2);x.quadraticCurveTo(42-armLag*.55,45+oy2,rHandX,rHandY);}
   }else{
     if(front){x.moveTo(38,27+oy2);x.lineTo(24,39+oy2);x.lineTo(rHandX,rHandY);}
@@ -3075,7 +3092,8 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   // Gaunt infected 3/4 face: the skull trails the torso by a few frames, then snaps back after the waist.
   x.save();
   // Head trails the shoulders by one walking pose, matching the supplied 12-frame lurch.
-  if(!front&&!vertical&&hitStun<=0){const neckX=32,neckY=26+oy2,headLag=idleMode?Math.sin(idleCyc-.65)*.025:Math.sin(cyc-.92)*.055;x.translate(neckX,neckY);x.rotate(headLag);x.translate(idleMode?0:Math.sin(cyc-1.15)*.45,0);x.translate(-neckX,-neckY);}
+  if(lp>0){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(lungeCurl*.38-lungeImpact*.16);x.translate(-lungeReach*2.2,lungeImpact*2.4);x.translate(-neckX,-neckY);}
+  else if(!front&&!vertical&&hitStun<=0){const neckX=32,neckY=26+oy2,headLag=idleMode?Math.sin(idleCyc-.65)*.025:Math.sin(cyc-.92)*.055;x.translate(neckX,neckY);x.rotate(headLag);x.translate(idleMode?0:Math.sin(cyc-1.15)*.45,0);x.translate(-neckX,-neckY);}
   if(hitStun>0){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(hitHead*.105);x.translate(hitHead*1.15,-Math.abs(hitHead)*.35);x.translate(-neckX,-neckY);}
   if(front||vertical){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(biteHeadRoll);x.translate(-neckX,-neckY);}
   x.translate(-biteReach,(vertical?biteReach*.12:0)+biteHeadDrop);
@@ -4358,7 +4376,7 @@ function render(){
       d.style.zIndex=z.mountedToId?'14':'11';
       d.appendChild(makeCanvas(c=>drawImp(c,z.walkTick,z.eatMode,(z.hurt>0||z.stun>0),!!z.mountedToId,bitePhase)));
     }else{
-      const airborne=z.lungeTime>0?-0.075*Math.sin((1-z.lungeTime/(z.lungeDuration||.58))*Math.PI):0; const wobbleY=z.eating?0:[0,-0.02,0,0.02][Math.floor(z.walkTick)%4]+airborne;
+      const airborne=z.lungeTime>0?-0.075*Math.sin(Math.max(0,Math.min(1,((1-z.lungeTime/(z.lungeDuration||1.18))-.40)/.40))*Math.PI):0; const wobbleY=z.eating?0:[0,-0.02,0,0.02][Math.floor(z.walkTick)%4]+airborne;
       const biteBodyLean=z.eating?(bitePhase<.34?bitePhase/.34*.025:bitePhase<.62?.025:(1-(bitePhase-.62)/.38)*.025):0;
       const poseX=z.eatMode==='front'?(-0.055-biteBodyLean):0;
       if((z.type==='normal'||z.type==='cone'||z.type==='bucket')&&z.hitStun>0)d.classList.add('normalHit');
