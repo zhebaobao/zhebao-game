@@ -2886,21 +2886,20 @@ function drawCargoArticulated(x,z,drawBase){
  if((s.impactPulse||0)>0){const u=1-Math.min(1,s.impactPulse/.20);x.save();x.globalAlpha=1-u;x.fillStyle='#8b704d';for(let i=0;i<6;i++){const a=-2.8+i*.34,r=5+u*(8+i*2);x.beginPath();x.arc(32+Math.cos(a)*r,58+Math.sin(a)*r,Math.max(.7,1.7-u*.7),0,Math.PI*2);x.fill();}x.restore();}
 }
 const NORMAL_ZOMBIE_SPRITES={
-  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.16',cols:12,rows:1,frames:12,crop:[[13,251,181,537],[0,256,181,537],[0,248,181,537],[0,245,181,538],[0,255,181,538],[0,252,181,538],[0,244,181,538],[0,250,181,537],[0,255,181,538],[0,259,181,538],[0,251,181,538],[0,254,163,538]]},
-  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.16',cols:8,rows:1,frames:8,crop:[[0,212,272,516],[0,198,271,516],[0,235,271,519],[0,242,272,522],[0,231,269,522],[0,224,271,528],[0,216,271,521],[0,212,240,518]]},
-  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.16',cols:4,rows:2,frames:8,crop:[[82,127,351,413],[56,223,347,413],[4,171,382,411],[0,152,423,386],[41,163,413,358],[10,216,443,373],[57,141,395,364],[65,163,368,362]]},
-  damage:{src:'assets/sprites/zombies/normal-damage.png?v=2026.10.03.16',cols:3,rows:1,frames:3,crop:[[154,40,618,681],[124,40,563,681],[74,40,521,688]]}
+  walk:{src:'assets/sprites/zombies/normal-walk.png?v=2026.10.03.17',cols:12,rows:1,frames:12},
+  wounded:{src:'assets/sprites/zombies/normal-walk-wounded.png?v=2026.10.03.17',cols:12,rows:1,frames:12},
+  critical:{src:'assets/sprites/zombies/normal-walk-critical.png?v=2026.10.03.17',cols:12,rows:1,frames:12},
+  bite:{src:'assets/sprites/zombies/normal-bite.png?v=2026.10.03.17',cols:8,rows:1,frames:8},
+  lunge:{src:'assets/sprites/zombies/normal-lunge.png?v=2026.10.03.17',cols:4,rows:2,frames:8},
+  death:{src:'assets/sprites/zombies/normal-death.png?v=2026.10.03.17',cols:4,rows:2,frames:8}
 };
 for(const sheet of Object.values(NORMAL_ZOMBIE_SPRITES)){sheet.image=new Image();sheet.image.decoding='async';sheet.image.addEventListener('load',()=>{if(typeof render==='function')render();},{once:true});sheet.image.src=sheet.src;}
 function drawNormalZombieSpriteFrame(ctx,key,index){
   const sheet=NORMAL_ZOMBIE_SPRITES[key],img=sheet?.image;if(!sheet||!img.complete||!img.naturalWidth)return false;
   index=Math.max(0,Math.min(sheet.frames-1,Math.floor(index)));
   const cw=img.naturalWidth/sheet.cols,ch=img.naturalHeight/sheet.rows,col=index%sheet.cols,row=Math.floor(index/sheet.cols);
-  const b=sheet.crop[index];if(!b)return false;
-  const sw=b[2]-b[0],sh=b[3]-b[1],fitW=key==='lunge'?54:48,fitH=key==='lunge'?50:55;
-  const scale=Math.min(fitW/sw,fitH/sh),dw=sw*scale,dh=sh*scale;
   ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(64,0);ctx.scale(-1,1);
-  ctx.drawImage(img,col*cw+b[0],row*ch+b[1],sw,sh,32-dw/2,63-dh,dw,dh);
+  ctx.drawImage(img,col*cw,row*ch,cw,ch,2,2,60,60);
   ctx.restore();return true;
 }
 function makeNormalZombieCanvas(draw){
@@ -2910,8 +2909,7 @@ function makeNormalZombieCanvas(draw){
 }
 function drawNormalZombieSprite(ctx,z,bitePhase=0){
   const hit=(z.hitStun||0)>0;
-  ctx.save();
-  if(hit)ctx.translate(-Math.min(2.2,z.hitStun*7),0);
+  ctx.save();if(hit)ctx.translate(-Math.min(2.2,z.hitStun*7),0);
   let drawn=false;
   if((z.lungeTime||0)>0){
     const u=Math.max(0,Math.min(1,1-z.lungeTime/(z.lungeDuration||1.5)));
@@ -2919,13 +2917,12 @@ function drawNormalZombieSprite(ctx,z,bitePhase=0){
   }else if(z.eatMode||z.eating){
     drawn=drawNormalZombieSpriteFrame(ctx,'bite',Math.min(7,Math.floor(Math.max(0,bitePhase)*8)));
   }else{
+    const frame=Math.floor((gameTime*7.5+(z.id||0)*.37)%12);
     const stage=z.hp<=z.maxHp/3?2:(z.hp<=z.maxHp*2/3?1:0);
-    if(stage>0)drawn=drawNormalZombieSpriteFrame(ctx,'damage',stage);
-    else drawn=drawNormalZombieSpriteFrame(ctx,'walk',Math.floor((gameTime*7.5+(z.id||0)*.37)%12));
+    drawn=drawNormalZombieSpriteFrame(ctx,stage===2?'critical':stage===1?'wounded':'walk',frame);
   }
-  if(!drawn)drawn=drawNormalZombieSpriteFrame(ctx,'damage',0);
-  ctx.restore();
-  return drawn;
+  if(!drawn)drawn=drawNormalZombieSpriteFrame(ctx,'walk',0);
+  ctx.restore();return drawn;
 }
 function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bitePhase=0,hitStun=0,bucketHp=0,plainModel=true,damageStage=0){
   const front=eatMode==='front', vertical=eatMode==='vertical';
@@ -3725,7 +3722,7 @@ function drawNormalZombieFallDeath(x,t){
   if(u>.38){const q=Math.min(1,(u-.38)/.62);x.save();x.globalAlpha=.30+.55*q;x.fillStyle='#67151d';x.beginPath();x.ellipse(34+q*8,58,4+q*13,1+q*2.4,0,0,Math.PI*2);x.fill();x.restore();}
 }
 function drawZombieDeath(x,cone,t,zombieType=null){
-  if(zombieType==='normal'&&!cone){const u=Math.max(0,Math.min(1,t/1.55));x.save();x.translate(32,61);x.rotate(-Math.min(1.36,u*1.58));x.translate(-32,-61);drawNormalZombieSpriteFrame(x,'damage',u>.55?2:1);x.restore();return;}
+  if(zombieType==='normal'&&!cone){const u=Math.max(0,Math.min(.999,t/1.55));drawNormalZombieSpriteFrame(x,'death',Math.floor(u*8));return;}
   // Other zombie families retain their established internal-struggle rupture.
   // Long, readable internal struggle, then rupture. The spikes are silhouette deformation, not smoke.
   const struggleEnd=.90,burstStart=.90,end=1.72;
