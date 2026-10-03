@@ -18,6 +18,7 @@
 | `js/game.js` | 尚未拆出的战斗流程、动画绘制和动态 UI |
 | `assets/portraits/` | 植物立绘资源 |
 | `assets/backgrounds/` | 两行、三行、五行工业战场背景 |
+| `assets/sprites/zombies/normal-*.png` | 普通僵尸行走、啃咬、飞扑、受击/死亡/待机和破损阶段的透明像素动画 |
 
 ## 植物栏目
 
