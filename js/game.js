@@ -1568,12 +1568,21 @@ function update(dt){
           playSfx('fleshHit',1,'minerPick',85,z.x);
         }
       }else{
-        z.eating=true;z.attack+=dt*slowMul;damagePlant(target,33*dt*slowMul); z.bloodTick=(z.bloodTick||0)+dt;
-        if(z.bloodTick>.68){ z.bloodTick=0; bloodFx.push({id:nextId++,x:target.col+.52,y:target.row+.48,age:0,life:.35,mode:z.eatMode}); }
-        if(z.attack>=.7){playSfx('bite',.9,'bite',85,z.x);z.attack-=.7;}
+        // One 0.7 s articulated bite cycle. Preserve 33 DPS, but apply it exactly at the visible clamp frame.
+        z.eating=true;
+        const biteCycle=.7,oldAttack=z.attack||0;
+        z.attack=oldAttack+dt*slowMul;
+        if(Math.floor(z.attack/biteCycle)!==Math.floor(oldAttack/biteCycle))z.biteLanded=false;
+        const biteDamagePhase=(z.attack%biteCycle)/biteCycle;
+        if(biteDamagePhase>=.46&&!z.biteLanded){
+          z.biteLanded=true;
+          damagePlant(target,33*biteCycle);
+          bloodFx.push({id:nextId++,x:target.col+.52,y:target.row+.48,age:0,life:.35,mode:z.eatMode});
+          playSfx('bite',.9,'bite',85,z.x);
+        }
       }
     }else{
-      z.eating=false;z.eatMode=null;z.attack=0;z.minerStrikeLanded=false;
+      z.eating=false;z.eatMode=null;z.attack=0;z.biteLanded=false;z.minerStrikeLanded=false;
       if(z.hitStun<=0&&z.lungeTime<=0){
         if(z.type==='crawler'){
           z.crawlPhase=(z.crawlPhase+dt*slowMul*.18)%1;
@@ -2876,12 +2885,23 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   const plain=plainModel&&!cone&&bucketHp<=0;
   // One readable bite cycle: approach -> open -> clamp -> pull back. Damage timing stays independent.
   const bp=(front||vertical)?Math.max(0,Math.min(1,bitePhase)):0;
-  const biteReach=(front||vertical)?(bp<.34?bp/.34*5.8:bp<.58?5.8:bp<.82?(1-(bp-.58)/.24)*5.8:0):0;
-  const jawOpen=(front||vertical)?(bp<.30?bp/.30:bp<.48?1:bp<.62?1-(bp-.48)/.14:0):0;
-  const biteClamp=(front||vertical)&&bp>=.48&&bp<.66;
-  // During a bite the upper body actually collapses onto the plant instead of biting from a distance.
-  const biteBody=(front||vertical)?(bp<.30?bp/.30*4.8:bp<.70?4.8:(1-(bp-.70)/.30)*4.8):0;
-  const biteDrop=(front||vertical)?Math.sin(Math.min(1,bp/.72)*Math.PI)*1.7:0;
+  // Eight-key-pose bite supplied by the artist: brace, lift/open, dive, clamp, tear, recoil, reset.
+  const poseSample=points=>{
+    if(!(front||vertical))return 0;
+    for(let i=1;i<points.length;i++)if(bp<=points[i][0]){
+      const a=points[i-1],b=points[i],u=(bp-a[0])/(b[0]-a[0]||1);
+      const s=u*u*(3-2*u);return a[1]+(b[1]-a[1])*s;
+    }
+    return points[points.length-1][1];
+  };
+  const biteReach=poseSample([[0,0],[.13,0],[.27,2.2],[.40,7.6],[.52,9.4],[.65,8.2],[.82,3.4],[1,0]]);
+  const jawOpen=poseSample([[0,0],[.13,.12],[.27,1],[.40,.92],[.48,.18],[.58,.05],[.72,.72],[.84,.18],[1,0]]);
+  const biteClamp=(front||vertical)&&((bp>=.43&&bp<.62)||(bp>=.78&&bp<.86));
+  const biteBody=poseSample([[0,0],[.13,.4],[.27,2.5],[.40,6.3],[.52,7.4],[.65,6.6],[.82,3.0],[1,0]]);
+  const biteDrop=poseSample([[0,0],[.13,-.6],[.27,-.2],[.40,3.2],[.52,4.8],[.65,3.7],[.82,1.2],[1,0]]);
+  const biteHeadDrop=poseSample([[0,0],[.13,-1.2],[.27,-.4],[.40,4.4],[.52,7.2],[.65,5.5],[.82,2.0],[1,0]]);
+  const biteHeadRoll=poseSample([[0,0],[.13,-.05],[.27,-.12],[.40,.11],[.52,.22],[.65,.12],[.82,.04],[1,0]]);
+  const biteArmReach=poseSample([[0,.08],[.13,.12],[.27,.38],[.40,.82],[.52,1],[.65,.88],[.82,.45],[1,.08]]);
   const leapDur=.58, lp=Math.max(0,Math.min(leapDur,lunge)), prog=lp>0?1-lp/leapDur:0;
   let crouch=0,air=0,lean=0;
   if(lp>0){ if(prog<.16){crouch=prog/.16*4.5;lean=prog/.16*5;} else if(prog<.88){const q=(prog-.16)/.72;air=-Math.sin(q*Math.PI)*12.5;lean=8.5;} else {const q=(prog-.88)/.12;crouch=(1-q)*2.2;lean=(1-q)*6;} }
@@ -3006,13 +3026,13 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   let rHandX=41-armSwing*.55, rHandY=48+oy2+Math.abs(armLag)*.7;
   x.strokeStyle='#1a1e1a';x.lineWidth=5.5;x.beginPath();
   if(!armGone){
-    if(front){lHandX=10;lHandY=42+oy2;rHandX=16;rHandY=43+oy2;x.moveTo(25,27+oy2);x.lineTo(16,35+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(24,39+oy2);x.lineTo(rHandX,rHandY);}
+    if(front){lHandX=23-13*biteArmReach;lHandY=48+oy2-6*biteArmReach;rHandX=41-25*biteArmReach;rHandY=48+oy2-5*biteArmReach;x.moveTo(25,27+oy2);x.lineTo(24-8*biteArmReach,36+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(39-15*biteArmReach,38+oy2);x.lineTo(rHandX,rHandY);}
     else if(vertical){lHandX=21;lHandY=49+oy2;rHandX=40;rHandY=49+oy2;x.moveTo(25,28+oy2);x.lineTo(20,40+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,28+oy2);x.lineTo(42,40+oy2);x.lineTo(rHandX,rHandY);}
     else{x.moveTo(25,27+oy2);x.quadraticCurveTo(24+armSwing*.35,37+oy2,23+armSwing*.45,41+oy2);x.quadraticCurveTo(22+armLag*.55,45+oy2,lHandX,lHandY);x.moveTo(38,27+oy2);x.quadraticCurveTo(40-armSwing*.35,37+oy2,40-armSwing*.45,41+oy2);x.quadraticCurveTo(42-armLag*.55,45+oy2,rHandX,rHandY);}
   }else{if(front){rHandX=16;rHandY=43+oy2;x.moveTo(38,27+oy2);x.lineTo(24,39+oy2);x.lineTo(rHandX,rHandY);}else if(vertical){rHandX=40;rHandY=49+oy2;x.moveTo(38,28+oy2);x.lineTo(42,40+oy2);x.lineTo(rHandX,rHandY);}else{x.moveTo(38,27+oy2);x.quadraticCurveTo(40-armSwing*.35,37+oy2,40-armSwing*.45,41+oy2);x.quadraticCurveTo(42-armLag*.55,45+oy2,rHandX,rHandY);}}x.stroke();
   x.strokeStyle='#77816f';x.lineWidth=3.2;x.beginPath();
   if(!armGone){
-    if(front){x.moveTo(25,27+oy2);x.lineTo(16,35+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(24,39+oy2);x.lineTo(rHandX,rHandY);}
+    if(front){x.moveTo(25,27+oy2);x.lineTo(24-8*biteArmReach,36+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,27+oy2);x.lineTo(39-15*biteArmReach,38+oy2);x.lineTo(rHandX,rHandY);}
     else if(vertical){x.moveTo(25,28+oy2);x.lineTo(20,40+oy2);x.lineTo(lHandX,lHandY);x.moveTo(38,28+oy2);x.lineTo(42,40+oy2);x.lineTo(rHandX,rHandY);}
     else{x.moveTo(25,27+oy2);x.quadraticCurveTo(24+armSwing*.35,37+oy2,23+armSwing*.45,41+oy2);x.quadraticCurveTo(22+armLag*.55,45+oy2,lHandX,lHandY);x.moveTo(38,27+oy2);x.quadraticCurveTo(40-armSwing*.35,37+oy2,40-armSwing*.45,41+oy2);x.quadraticCurveTo(42-armLag*.55,45+oy2,rHandX,rHandY);}
   }else{
@@ -3027,7 +3047,8 @@ function drawZombie(x,cone,f=0,eatMode=null,hurt=false,armGone=false,lunge=0,bit
   // Gaunt infected 3/4 face: the skull trails the torso by a few frames, then snaps back after the waist.
   x.save();
   if(hitStun>0){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(hitHead*.105);x.translate(hitHead*1.15,-Math.abs(hitHead)*.35);x.translate(-neckX,-neckY);}
-  x.translate(-biteReach, vertical?biteReach*.12:0);
+  if(front||vertical){const neckX=32,neckY=26+oy2;x.translate(neckX,neckY);x.rotate(biteHeadRoll);x.translate(-neckX,-neckY);}
+  x.translate(-biteReach,(vertical?biteReach*.12:0)+biteHeadDrop);
   x.fillStyle='#1b201c';x.beginPath();x.moveTo(26,2.8+oy2);x.bezierCurveTo(36,1+oy2,42.5,7.2+oy2,41.8,15.5+oy2);x.bezierCurveTo(41.4,20+oy2,39.4,23.2+oy2,36.8,25.6+oy2);x.lineTo(29.2,28.6+oy2);x.bezierCurveTo(21.5,26.4+oy2,19.8,20.5+oy2,20.7,12.4+oy2);x.bezierCurveTo(21.2,7+oy2,23.3,4.5+oy2,26,2.8+oy2);x.fill();
   x.fillStyle=plain?'#899077':'#60695d';x.beginPath();x.moveTo(27,4+oy2);x.bezierCurveTo(36,2+oy2,41,8+oy2,40,15+oy2);x.bezierCurveTo(40,19+oy2,38,22+oy2,36,24+oy2);x.lineTo(30,27+oy2);x.bezierCurveTo(23,25+oy2,21,20+oy2,22,13+oy2);x.bezierCurveTo(22,8+oy2,24,6+oy2,27,4+oy2);x.fill();
   // exposed cheek plane and sickly forehead highlight
